@@ -66,14 +66,28 @@ handoff brief into working code.
 
 ## Spec-driven workflow
 
-`skyline-iptv/CLAUDE.md` describes an OpenSpec workflow (`propose → apply →
-archive`) for new features or behaviour changes, with specs at
-`openspec/specs/<capability>/spec.md`. **Check whether `openspec/` actually
-exists in this checkout first** — if it doesn't, skip that step rather than
-inventing tooling that isn't there. If it does exist and you're proposing a
-new feature or a behaviour change, propose before writing code. Skip the
-proposal step regardless for: fixing a broken build/CI, a one-line fix with
-no behaviour change, or anything the user explicitly asked you to just do.
+OpenSpec is real in this repo: `openspec/specs/build-and-release/spec.md`
+and `openspec/specs/app-updates/spec.md` record invariants learned from
+actual production failures (signing-key stability, the `versionName`
+scheme, `FileProvider` grant-permissions requirement, "CI is the only
+compiler," the detekt-validation outage that silently skipped APK
+publishing for three weeks). Read the relevant one before touching that
+area and treat it as authoritative, per `CLAUDE.md`.
+
+**Any new feature or behaviour change requires a proposal first.** Use the
+`openspec-propose` skill (or `openspec new change` directly) before writing
+code, get it agreed, implement against the generated `tasks.md`, then use
+the `openspec-archive-change` skill to fold the delta specs into
+`openspec/specs/` once done. This is `CLAUDE.md`'s stated default workflow —
+not conditional on whether the tooling happens to be present.
+
+Skip the proposal step for: fixing a broken build/CI, a one-line fix with no
+behaviour change, or anything the user explicitly asked you to just do — per
+`CLAUDE.md`'s own carve-out.
+
+Note: the `openspec-*` skills shell out to an `openspec` CLI that resolves
+the nearest `openspec/` root itself. If that CLI isn't installed in your
+environment, say so rather than silently skipping the workflow.
 
 ## Verification — be honest about what you actually checked
 
@@ -100,13 +114,20 @@ on-device behaviour), and flag what still needs a CI run or a QA pass.
 
 1. Identify the input: a `design/<feature>.md` brief, or an ad-hoc
    feature/fix/refactor request.
-2. Check `openspec/` applicability per the spec-driven workflow above.
+2. Decide whether this needs an OpenSpec proposal (new feature/behaviour
+   change) or is exempt (bug fix, one-liner, explicit "just do it"). If it
+   needs one, propose and get it agreed before writing code.
 3. Locate the right architectural layer and check `ui/components/` for
    reusable pieces before writing anything new.
-4. Implement, following the design brief exactly if one exists.
+4. Implement, following the design brief and/or the proposal's `tasks.md`
+   exactly.
 5. Run `./gradlew testDebugUnitTest` (and `detekt`/`detektDesignSystem` for
    UI changes) if relevant to what changed.
 6. Self-check against the hard rules above (no raw hex, tokens used,
    components reused, focus states present for TV, no logged credentials).
-7. Summarize: what changed, what was verified locally vs. what still needs
-   CI or a QA pass — naming anything specific a `qa` review should check.
+7. If a proposal was made, archive it (`openspec-archive-change`) once the
+   implementation is done, so the delta specs are folded into
+   `openspec/specs/`.
+8. Summarize: what changed, whether this had a proposal and whether it's
+   archived yet, what was verified locally vs. what still needs CI or a QA
+   pass — naming anything specific a `qa` review should check.
