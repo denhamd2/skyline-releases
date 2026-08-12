@@ -18,7 +18,17 @@ potentially-stale doc.
    `skyline-iptv/app/src/test/java/com/denham/skyline/ui/ScreenshotTests.kt`
    and any other `*ScreenshotTests.kt` / `*Screenshots.kt` files for a test
    that already renders the target screen (not just its components).
-2. **If none exists, write a minimal scoped one** in the same style:
+   `HomeScreen` has a baseline: `HomeScreenshotTest.kt` (next to `HomeScreen.kt`
+   in `ui/home/`) renders the assembled screen in the David-selected
+   member-chip state to `brain/component-screenshots/home_david.png`. If the
+   edit is to Home and the David tab's shape (its rails, its pinned-channel
+   row, its layout) is close enough to what's needed, **extend that test's
+   sample data or add a second `@Test` in the same class** rather than
+   writing a whole new screen-rendering harness from scratch — the
+   `AppContainer` seam it uses (in-memory Room DB, network-disabled
+   OkHttpClient, `seedAccountForTesting`) is the reusable part.
+2. **If none exists for the target screen, write a minimal scoped one** in
+   the same style:
    `@RunWith(RobolectricTestRunner::class)`, `@GraphicsMode(NATIVE)`, a
    `@Config` qualifier matching phone (`RobolectricDeviceQualifiers.Pixel7`)
    or TV (`"w1280dp-h720dp-land-xhdpi"`) as relevant, `setContent {
@@ -65,3 +75,18 @@ potentially-stale doc.
   screen (or any screen that turns out not to be Roborazzi-coverable), say
   so in the brief and fall back to reading the screen's Compose source
   directly instead of blocking on a screenshot.
+- Any screen whose real screen composable is driven by a `ViewModel(container:
+  AppContainer)` (most of them) needs `AppContainer` itself to be
+  constructible under Robolectric without touching a real network, DB file,
+  or the Android Keystore. `HomeScreenshotTest.kt` established the pattern:
+  `AppContainer.createDatabase()`/`createOkHttpClient()` are `protected
+  open` for exactly this, and `seedAccountForTesting(...)` sets the account
+  without going through `CredentialStore` (Keystore-backed, unavailable
+  under Robolectric). Reuse that seam for other screens rather than
+  re-deriving it — it's on `AppContainer`, not `HomeViewModel`.
+- `HomeScreen`'s David-only "Football" section is *not* covered by
+  `home_david.png` — it's gated on `BuildConfig.FOOTBALL_DATA_API_KEY`,
+  which is empty outside CI (real value is a CI secret, and it must never be
+  baked into a local/test build — see the "nothing secret in the APK" rule).
+  A design task specifically about that section still needs a source read,
+  or a further seam, not this screenshot.

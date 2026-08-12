@@ -1,5 +1,137 @@
 # Football fixtures on Home — David's profile only
 
+## Post-implementation review (2026-08-12)
+
+This feature has shipped. This brief is now a **review**, not a from-scratch
+plan — the sections below (originally written pre-implementation) are kept
+for record but the verdict is: **implementation matches spec closely, no
+implementation-blocking defects found, two recommended follow-ups below.**
+
+**Grounding.** Checked `brain/component-screenshots/` for a live `HomeScreen`
+screenshot first, per the live-screenshot-capture workflow — only
+`phone_components.png`/`tv_components.png` exist (component gallery, not the
+assembled screen); no `home_david.png` or similar has landed yet from the
+parallel Roborazzi effort. Fell back to reading source directly, same as the
+original brief: `ui/components/Components.kt` (`FixtureCard`,
+`FixtureChannelChip`, lines ~395–572) and `ui/home/HomeScreen.kt`
+(`FootballSectionState`, `footballSection`/`fixtureChannels`, lines ~115–355
+and ~795–869), plus the two files the brief only sketched the shape of at
+review time: `data/repo/FootballRepository.kt` and `core/FootballMapping.kt`/
+`core/FootballModels.kt`.
+
+**What shipped exactly as specced:**
+- Placement: pinned rail → Football section → YouTube carousel, guarded on
+  `selectedMember == "David"` specifically (`HomeScreen.kt:800-807`).
+- Composition: `SectionHeader("Football")`, "Man Utd next" sub-label in
+  `titleMedium`/`TextSecondary`, full-width `FixtureCard` spotlight, then a
+  `Rail("", ...)` of today's fixtures — matches the brief's sketch line for
+  line (`HomeScreen.kt:808-869`).
+- `FixtureCard` layout, tokens, and all three status states (Scheduled/Live/
+  Finished) match the brief's spec exactly, including `SkyPalette.Surface`
+  background, `SkyRadius.card` corners, `SkySpacing.m` internal padding.
+- Tap behaviour matches exactly: single-match card is `scaledClickable`,
+  2+ matches leave the card inert with chips only, 0 matches show muted
+  "Not on your channels" text and an inert card (`Components.kt:427-433`,
+  `523-538`).
+- States table matches: shimmer loading (`ShimmerBox` + `ShimmerRail`), no
+  key → `Hidden` (section doesn't render), no fixtures → section doesn't
+  render, independent Man Utd/today's-rail failure (one can be present
+  without the other) — all present in `footballSection`/`showFootball`
+  (`HomeScreen.kt:311-329`, `802-807`).
+- EPG matching took the brief's first suggested approach (new `GuideDao`
+  title-`LIKE` query against both team names, windowed to kickoff ±90 min,
+  resolved through `ChannelDao.byIds`) — `HomeScreen.kt:551-560`. This is now
+  a decided implementation fact, not an open design question.
+- `FOOTBALL_DATA_API_KEY` follows the same `BuildConfig`-at-call-time pattern
+  the brief pointed to, and the repository never caches or logs the key
+  (`FootballRepository.kt:17-21`) — also now a decided fact.
+- Football-data.org coverage caveat: section header stays plain "Football",
+  not "All football today," as specced.
+
+**Deliberate, reasonable drift from the original prop sketch (approved, not
+a defect):**
+- `FixtureCard` took `channels: List<ChannelEntity>` and
+  `onPlayChannel: (ChannelEntity) -> Unit` directly instead of the brief's
+  sketched parallel `FixtureChannel`/`onClick` split — simpler, no parallel
+  channel model, still resolves through real `ChannelEntity`s as required.
+- `width: Dp? = 240.dp` (null → full width) replaces the brief's separate
+  `width: Dp` + implied "ignore for spotlight" contract — a cleaner single
+  parameter for the same two use cases (rail card vs. spotlight).
+
+**QA-fixed issues, noted for the record (not re-litigated):** two raw
+`4.dp` spacing literals now use `SkySpacing.xs`; `FootballMatchesResponse`'s
+`matches` array now decodes via a `TolerantMatchListSerializer`
+(`core/FootballModels.kt:29-57`) so one malformed match from the API no
+longer blanks the whole today's-fixtures list — each element is decoded and
+skipped individually on failure, consistent with `FootballMapping.toFixture`
+already returning `null` (filtered out) for a match it can't place in a
+renderable status.
+
+**One pattern worth flagging, not fixing:** `FixtureCard`'s team-crest
+`ArtworkImage` corners use a raw `RoundedCornerShape(4.dp)`
+(`Components.kt:450, 474`) rather than a `SkyRadius` token. This is **not a
+regression introduced by this feature** — the same `4.dp` literal already
+exists for small logo/icon corners elsewhere in `Components.kt` (lines 285,
+299, 670), so `FixtureCard` is following established (if imperfect)
+convention, not breaking it. `SkyRadius` has no token below `chip` (8dp) for
+this "small square logo" case. Not blocking; if a future pass wants to
+clean this up, add a `SkyRadius.icon`/similar 4dp token and migrate all five
+call sites together, not just this one.
+
+**Genuine new finding — recommended improvement, not shipped, needs a
+developer follow-up:**
+
+`FixtureStatus.Scheduled.kickoffLocal` is formatted as `"KO 17:30"` — time
+only, no date (`FootballMapping.kt:66, 86-89`, `Components.kt:481-487`). For
+the **today's-fixtures rail** this is fine — every card in that rail is
+implicitly "today" by construction, so a bare time is unambiguous. But the
+**"Man Utd next" spotlight** fixture is fetched independently
+(`nextManUtdFixture`, `FootballRepository.kt:50-54`) and is very often
+**not** today — it's whatever United's next scheduled match is, which could
+be four or five days out. A card reading only "KO 17:30" with no date
+context misrepresents "next" as "today" at a glance, which actively
+undermines the spotlight's stated purpose ("answers 'when is United playing
+next' even outside match windows" — this brief, "Man Utd next spotlight"
+section above). This is a genuine gap the original brief didn't catch
+(it specced `kickoffLocal: String` as an opaque prop without pinning down
+its exact format).
+
+Recommended fix (design-level, for a developer to implement): give
+`FixtureStatus.Scheduled` a date-aware label for the spotlight case —
+either thread a boolean/enum so the spotlight card can render `"Sat 16 Aug,
+KO 15:00"` while the rail keeps the bare `"KO 15:00"`, or simplest: always
+include a short relative-day prefix (`"Today"`, `"Tomorrow"`, or `"Sat 16
+Aug"`) ahead of the time in `formatKickoffLocal`, using
+`MaterialTheme.typography.labelMedium`/`SkyPalette.TextSecondary` exactly as
+now — no new token needed, just a formatting change to
+`FootballMapping.formatKickoffLocal` (and, if the two-format route is taken,
+a new small param on `FixtureCard`/`FixtureStatus.Scheduled`). This is the
+only change in this review that touches shipped behaviour rather than just
+documentation; flagged clearly in the handoff below for developer routing.
+
+**Open questions from the original brief — resolved or superseded:**
+1. ~~Confirm football-data.org team id 66 = Manchester United~~ — still
+   genuinely unconfirmed (no live API key available in this environment
+   either, on this pass), but this is a data-correctness question for
+   whoever holds a working key, not a design open question; removed from
+   this brief's open-questions list as it was never actually a design
+   decision.
+2. ~~Whether `FOOTBALL_DATA_API_KEY` should follow `YOUTUBE_API_KEY`'s exact
+   CI-secret/`BuildConfig` wiring pattern~~ — resolved: it does
+   (`FootballRepository.kt:17-21`, `BuildConfig.FOOTBALL_DATA_API_KEY` used
+   at `HomeScreen.kt:313`). Whether the CI secret itself is actually
+   configured in GitHub Actions is unverifiable from this checkout (no
+   `.github/workflows` present) — an ops/CI-owner question, not a design one.
+3. ~~EPG title-matching approach~~ — resolved: the new `GuideDao` LIKE-query
+   route was taken, as noted above. No UI-visible difference from the
+   alternative, per the original brief's own framing.
+
+No other open questions remain from the original brief. The one open item
+this review adds is the kickoff-date recommendation above, which is an
+implementation-affecting suggestion, not a blocking question.
+
+---
+
 ## What this changes
 
 Adds a football fixtures section to `HomeScreen` (`skyline-iptv/app/src/main/java/com/denham/skyline/ui/home/HomeScreen.kt`),
@@ -355,7 +487,7 @@ a timed-out `./gradlew testDebugUnitTest` run). Grounding is the
 `HomeScreen.kt` source read directly, cited by line above, plus the token
 and component references throughout this brief.
 
-## Ready for implementation
+## Ready for implementation (original, pre-implementation — superseded, see below)
 
 - **Brief**: `design/david-football-fixtures.md`
 - **Visuals**: skipped: edit to an existing screen (no new-screen mockup
@@ -374,13 +506,50 @@ and component references throughout this brief.
   linking); all colour via `SkyPalette.*`, spacing via `SkySpacing.*`,
   corners via `SkyRadius.card`/`SkyRadius.chip`, type via
   `MaterialTheme.typography.*`.
-- **Open questions**:
-  1. Confirm football-data.org team id 66 = Manchester United before wiring
-     (flagged as unconfirmed in the task's own notes).
-  2. Whether `FOOTBALL_DATA_API_KEY` should follow `YOUTUBE_API_KEY`'s exact
-     CI-secret/`BuildConfig` wiring pattern (`app/build.gradle.kts:38-45`) —
-     assumed yes per the task notes, but not yet confirmed with a repo
-     maintainer/CI owner.
-  3. EPG title-matching approach (new `GuideDao` LIKE query vs. leaning on
-     `epg_now_next`) is a developer implementation choice with no UI-visible
-     difference; flagged in the brief for awareness, not blocking.
+- **Open questions**: superseded — see "Post-implementation review" section
+  at the top of this file; all three original questions are now resolved
+  facts, not open.
+
+## Ready for implementation — this review pass
+
+- **Brief**: `design/david-football-fixtures.md` (see "Post-implementation
+  review (2026-08-12)" section at the top — that section is the actual
+  deliverable of this pass; everything below it is the original
+  pre-implementation brief, kept for record).
+- **Visuals**: skipped: no `home_david.png`/equivalent live screenshot has
+  landed yet from the parallel Roborazzi effort (checked
+  `brain/component-screenshots/` — only the pre-existing component-gallery
+  screenshots exist). Fell back to reading `HomeScreen.kt`,
+  `ui/components/Components.kt`, `data/repo/FootballRepository.kt`, and
+  `core/FootballMapping.kt`/`FootballModels.kt` directly, same fallback path
+  as the original brief.
+- **Summary**: Reviewed the shipped David-only "Football" Home section
+  against the original brief and the design system. Implementation matches
+  the brief closely — placement, composition, all three status states, tap
+  behaviour, EPG matching, and token usage all check out, with two
+  deliberate/reasonable prop-shape simplifications noted as approved drift.
+  One genuine new finding: the "Man Utd next" spotlight card shows kickoff
+  time only ("KO 17:30"), no date, which misrepresents "next" fixtures that
+  are several days out as if they were today's — this is a real gap the
+  original brief's opaque `kickoffLocal: String` prop didn't catch, not a
+  developer defect.
+- **Reuse/tokens**: No new components or tokens needed for the recommended
+  fix — it's a formatting change to `FootballMapping.formatKickoffLocal`
+  (plus, if a per-context format is wanted, a small param threaded to
+  `FixtureCard`/`FixtureStatus.Scheduled`), rendered with the same
+  `MaterialTheme.typography.labelMedium`/`SkyPalette.TextSecondary` already
+  in use. Everything else shipped is confirmed already using
+  `SkyPalette.*`/`SkySpacing.*`/`SkyRadius.*`/`MaterialTheme.typography.*`
+  correctly; no raw hex or off-grid literals introduced by this feature
+  (the one pre-existing `4.dp` corner-radius pattern it follows at
+  `Components.kt:450, 474` is inherited convention, not a new defect — see
+  review section above).
+- **Open questions**: none blocking. One implementation-affecting
+  recommendation for developer routing: add a date qualifier (e.g. "Today"/
+  "Tomorrow"/"Sat 16 Aug") ahead of the kickoff time specifically for the
+  "Man Utd next" spotlight card, per the finding above — this is a UX
+  correctness fix, not a nice-to-have, since the card can otherwise silently
+  misstate when a fixture is happening. Team-id-66 verification and CI
+  secret configuration remain real but out-of-scope-for-design unknowns
+  (need a live API key / repo CI access respectively, neither available in
+  this environment).
