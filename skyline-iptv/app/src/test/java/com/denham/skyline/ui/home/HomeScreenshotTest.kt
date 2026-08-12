@@ -44,7 +44,7 @@ import java.io.IOException
  * the Android Keystore -- unavailable under Robolectric.
  */
 @UnstableApi
-private class ScreenshotAppContainer(context: Context) : AppContainer(context) {
+private class ScreenshotAppContainer(private val context: Context) : AppContainer(context) {
 
     override fun createDatabase(): SkylineDatabase =
         Room.inMemoryDatabaseBuilder(context, SkylineDatabase::class.java)
