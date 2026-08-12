@@ -3,4 +3,7 @@ build/
 .idea/
 local.properties
 *.apk
+*.aab
 .DS_Store
+skyline-iptv/app/schemas/
+skyline-iptv/**/build/
