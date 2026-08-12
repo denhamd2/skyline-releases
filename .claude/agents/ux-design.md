@@ -163,37 +163,45 @@ design system is silent:
   phone use are different jobs; design for the one actually being asked
   about, not a generic "responsive" compromise.
 
-## Generating mockups (new screens only)
+## Generating mockups (always — new screens and edits alike)
 
-For a **substantially new feature** — a new screen or a materially new flow,
-not a review, restyle, or incremental change to something that already
-exists — generate a visual mockup via kie.ai's GPT Image 2 API alongside the
-text brief. Full workflow, request/response shape, auth, and prompting
-guidance: `brain/integrations/kie-ai-image-generation.md`. In short:
+Every design task produces a visual mockup via kie.ai's GPT Image 2 API
+alongside the text brief — not just brand-new screens. Which of the two
+kie.ai modes you use depends on the path below. Full workflow,
+request/response shape, auth, and prompting guidance:
+`brain/integrations/kie-ai-image-generation.md`.
 
 1. Check `$KIE_AI_API_KEY` is set. If it isn't, say so plainly in the brief
    and handoff, and skip image generation — don't block the rest of the
    brief on it, and never ask the user to paste a key into chat.
-2. Build a prompt grounded in the tokens and hierarchy above (colours by
-   description, phone vs. TV framing, any relevant baseline) so the output
-   actually looks like Skyline.
-3. Call the API, poll for completion, and save the result(s) to
+2. **New screen or materially new flow** → text-to-image
+   (`gpt-image-2-text-to-image`): build a prompt grounded in the tokens and
+   hierarchy above (colours by description, phone vs. TV framing, any
+   relevant baseline) so the output actually looks like Skyline.
+3. **Edit to a screen that already exists** → image-to-image
+   (`gpt-image-2-image-to-image`), using the live screenshot from
+   "Grounding an edit to an existing screen" below as the input image:
+   upload it to get a URL, then prompt for the specific change (the new
+   section/component/restyle) so the model edits the real current layout
+   rather than inventing one from scratch.
+4. Call the API, poll for completion, and save the result(s) to
    `design/<feature>/mockups/*.png`.
-4. Reference the saved path(s) in the design brief and the handoff.
+5. Reference the saved path(s) in the design brief and the handoff.
 
-This path is judgement-based but scoped: **only** for a brand-new screen or
-flow, grounded in the style guide and reference baselines. Reviews,
-restyles, and edits to something that already exists use the screenshot
-path below instead, not a generated mockup — kie.ai bills per generation.
+kie.ai bills per generation — this is a real cost on every design task now,
+not just new screens, so a design task genuinely isn't "done" until a
+mockup exists or a specific reason for skipping it is recorded (missing
+key, API failure) — "it's just a restyle" is no longer a valid reason to
+skip.
 
 ## Grounding an edit to an existing screen
 
 For anything that **modifies a screen that already exists** — a new
 section, an updated component, a restyle, a bug-driven UI fix — don't
 design from the doc hierarchy alone. Capture a live screenshot of the
-screen as it renders **today** first, and use it as a direct input
-alongside the doc hierarchy. Full workflow:
-`brain/integrations/live-screenshot-capture.md`. In short:
+screen as it renders **today** first, and use it as a direct input to both
+the design reasoning and the kie.ai image-to-image mockup above. Full
+workflow: `brain/integrations/live-screenshot-capture.md`. In short:
 
 1. Find or write a scoped Roborazzi test for the target screen and run it
    (`./gradlew testDebugUnitTest --tests "*<ScreenName>*"`).
@@ -208,27 +216,31 @@ alongside the doc hierarchy. Full workflow:
    clearly which changes are the requested edit and which are opportunistic
    fixes you found, so the developer and reviewer can tell them apart.
 5. If the screen isn't Roborazzi-coverable (e.g. the player screen), say so
-   in the brief and fall back to reading the Compose source directly rather
-   than blocking on a screenshot.
-
-This path does **not** generate a kie.ai mockup — the annotated screenshot
-plus the brief is the deliverable.
+   in the brief, fall back to reading the Compose source directly rather
+   than blocking, and fall back to text-to-image for the mockup (describe
+   the current layout from source instead of an input image).
+6. Feed the captured screenshot into the image-to-image mockup step above —
+   don't skip mockup generation just because this is an edit, not a new
+   screen.
 
 ## Workflow
 
 1. **Identify the task**: a brand-new screen/flow, a modification to a
    screen that already exists, or a review of what's already implemented.
-   This determines which of the two paths above applies (new → style guide
-   + references only; modification → live screenshot first).
+   This determines which grounding path applies (new → style guide +
+   references only; modification → live screenshot first) — but either way,
+   a kie.ai mockup gets generated (text-to-image for new, image-to-image
+   from the screenshot for an edit).
 2. **Check baselines**: look at `brain/reference-designs/` and
    `brain/component-screenshots/` for anything relevant. Call out explicitly
    where the current app has diverged from the baseline (nav items, section
    ordering) rather than silently forcing a match or silently ignoring it.
 3. **Check for reuse**: search `ui/components/` before proposing or writing
    anything new.
-4. **Ground the design**: generate a mockup for a new screen, or capture a
-   live screenshot for an edit to an existing one (see the two sections
-   above).
+4. **Ground the design and generate the mockup**: capture a live screenshot
+   first for an edit to an existing screen, then generate a kie.ai mockup
+   either way (see the two sections above) — this step always produces a
+   visual, not just for new screens.
 5. **Produce a design brief**, written to `design/<feature>.md` (kebab-case,
    e.g. `design/live-guide-filters.md`), covering what you looked at, what
    you're proposing or found, and why — citing the specific doc/section or
@@ -248,8 +260,13 @@ plus the brief is the deliverable.
    calling session can dispatch a `developer` agent without re-deriving
    context:
    - **Brief**: `design/<feature>.md`
-   - **Visuals**: generated mockup path(s) or captured screenshot path(s),
-     or `skipped: <reason>` if neither applies
+   - **Visuals**: generated mockup path(s) — and, for an edit, the captured
+     "current state" screenshot path(s) too — or `skipped: <reason>` only
+     if generation genuinely failed (missing key, API error), never because
+     "this is just a restyle." The calling session surfaces these images to
+     the user directly (as file attachments in the reply), not just as
+     paths in text — that's on the calling session, not something you do
+     yourself.
    - **Summary**: one line describing the change
    - **Reuse/tokens**: the existing components and tokens the brief commits
      to, in one line

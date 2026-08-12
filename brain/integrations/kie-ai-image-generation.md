@@ -1,7 +1,9 @@
 # kie.ai — GPT Image 2 mockup generation
 
-How `ux-design` generates visual mockups for substantially new features via
-kie.ai's GPT Image 2 API.
+How `ux-design` generates visual mockups via kie.ai's GPT Image 2 API — for
+**every** design task, new screens and edits to existing ones alike. Two
+modes: text-to-image (new screens) and image-to-image (edits, grounded in a
+captured screenshot — see `brain/integrations/live-screenshot-capture.md`).
 
 ## Auth
 
@@ -13,7 +15,7 @@ image generation rather than asking the user to paste a key into chat.
 
 ## Workflow (async, task-based)
 
-1. **Create the task**:
+1. **Create the task** — text-to-image for a new screen:
    ```
    POST https://api.kie.ai/api/v1/jobs/createTask
    Authorization: Bearer $KIE_AI_API_KEY
@@ -28,6 +30,30 @@ image generation rather than asking the user to paste a key into chat.
    }
    ```
    Returns a task id.
+
+   **Or image-to-image for an edit to an existing screen** — first upload
+   the captured screenshot to get a URL kie.ai can fetch (it needs a public
+   URL, not a local path or raw bytes): `POST` the PNG's base64 contents to
+   `https://kieai.redpandaai.co/api/file-base64-upload` (small files —
+   screenshots are well under the size where the stream-upload endpoint
+   would matter). That returns a file URL, valid for kie.ai to read for a
+   few days before it's auto-deleted — don't treat it as durable, it's only
+   a hop to get the screenshot into `input_urls` below. Then:
+   ```
+   POST https://api.kie.ai/api/v1/jobs/createTask
+   Authorization: Bearer $KIE_AI_API_KEY
+   Content-Type: application/json
+
+   {
+     "model": "gpt-image-2-image-to-image",
+     "input": {
+       "prompt": "<description of the specific change to make to this screen>",
+       "input_urls": ["<uploaded screenshot URL>"],
+       "aspect_ratio": "<e.g. 9:16 for phone, 16:9 for TV/desktop>"
+     }
+   }
+   ```
+   Same task id / poll / download flow as text-to-image from here.
 
 2. **Poll for completion**:
    ```
@@ -73,7 +99,9 @@ Skyline rather than generic Material:
 
 ## Scope
 
-Only for a **substantially new feature** — a new screen or a materially new
-flow — not for reviews, restyles, or incremental changes to something that
-already exists. Don't spend API calls (kie.ai bills per generation) on
-routine work.
+Every design task generates a mockup now — new screens, restyles, new
+sections on an existing screen, incremental changes. kie.ai bills per
+generation, so this is a real recurring cost, not a one-off — but "skip it,
+it's just a small change" is no longer a valid reason to omit one. The only
+valid reasons to skip are `$KIE_AI_API_KEY` being unset or the API call
+genuinely failing; record which, plainly, in the brief and handoff.
