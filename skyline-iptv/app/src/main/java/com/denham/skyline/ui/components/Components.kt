@@ -8,7 +8,9 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
@@ -27,6 +29,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LiveTv
@@ -54,9 +57,14 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
+import com.denham.skyline.core.FixtureStatus
+import com.denham.skyline.data.db.ChannelEntity
 import com.denham.skyline.ui.theme.SkyPalette
+import com.denham.skyline.ui.theme.SkyRadius
+import com.denham.skyline.ui.theme.SkySpacing
 
 /** Clickable with premium press feedback: scales to 0.97 while touched. */
 fun Modifier.scaledClickable(onClick: () -> Unit): Modifier = composed {
@@ -373,6 +381,193 @@ fun LiveNowRow(
             }
         }
         LiveBadge()
+    }
+}
+
+/**
+ * Football fixture card: competition badge, team crests/names, a status row
+ * (scheduled/live/finished), and chips for any EPG channel carrying the
+ * match. A legitimate new sibling to [ChannelCard]/[PosterCard]/
+ * [LiveNowRow] -- see `design/david-football-fixtures.md` for why none of
+ * those fit (no non-live status state, no score+minute, no multi-channel
+ * chip linking). Used both at rail width (`width` set) and full-bleed as a
+ * single spotlight card (`width = null`).
+ *
+ * `channels` resolves straight through to real [ChannelEntity]s -- no
+ * parallel "fixture channel" model -- and `onPlayChannel` is the same
+ * callback `HomeScreen` already threads through every other rail.
+ *
+ * Tap behaviour: with exactly one matched channel, the whole card plays it
+ * directly (this is also what its one chip does -- a harmless duplicate
+ * affordance, not a second destination). With zero matches, the card is
+ * inert and shows muted fallback text. With two or more matches, the card
+ * itself stays inert so a tap can never be ambiguous about which channel it
+ * meant; only the chips are tappable.
+ *
+ * Phone-only for now: this renders inside a phone-style `Rail`/`LazyRow`.
+ * If reused on TV later it needs the standard TV focus treatment (1.04
+ * scale + white outline, 140ms) AND the channel chips need to become
+ * individually D-pad-focusable -- TV has no touch fallback to disambiguate
+ * a multi-channel tap. Not implemented here; flagging so it isn't silently
+ * assumed to "just work".
+ */
+@Composable
+fun FixtureCard(
+    competition: String,
+    homeTeam: String,
+    awayTeam: String,
+    homeCrestUrl: String?,
+    awayCrestUrl: String?,
+    status: FixtureStatus,
+    channels: List<ChannelEntity>,
+    onPlayChannel: (ChannelEntity) -> Unit,
+    modifier: Modifier = Modifier,
+    width: Dp? = 240.dp,
+) {
+    val singleMatch = channels.singleOrNull()
+    val sizedModifier = if (width != null) modifier.width(width) else modifier.fillMaxWidth()
+    val clickableModifier = if (singleMatch != null) {
+        sizedModifier.scaledClickable { onPlayChannel(singleMatch) }
+    } else {
+        sizedModifier
+    }
+
+    Column(
+        clickableModifier
+            .clip(RoundedCornerShape(SkyRadius.card))
+            .background(SkyPalette.Surface)
+            .padding(SkySpacing.m),
+    ) {
+        ProviderBadge(competition)
+        Spacer(Modifier.height(SkySpacing.s))
+
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            ArtworkImage(
+                url = homeCrestUrl,
+                contentDescription = homeTeam,
+                fallbackIcon = Icons.Default.LiveTv,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(28.dp).clip(RoundedCornerShape(4.dp)),
+            )
+            Text(
+                homeTeam,
+                style = MaterialTheme.typography.titleSmall,
+                color = SkyPalette.TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f).padding(horizontal = SkySpacing.xs),
+            )
+            Text("v", style = MaterialTheme.typography.bodySmall, color = SkyPalette.TextMuted)
+            Text(
+                awayTeam,
+                style = MaterialTheme.typography.titleSmall,
+                color = SkyPalette.TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f).padding(horizontal = SkySpacing.xs),
+            )
+            ArtworkImage(
+                url = awayCrestUrl,
+                contentDescription = awayTeam,
+                fallbackIcon = Icons.Default.LiveTv,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(28.dp).clip(RoundedCornerShape(4.dp)),
+            )
+        }
+
+        Spacer(Modifier.height(SkySpacing.s))
+
+        when (status) {
+            is FixtureStatus.Scheduled -> {
+                Text(
+                    status.kickoffLocal,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = SkyPalette.TextSecondary,
+                )
+            }
+            is FixtureStatus.Live -> {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(SkySpacing.xs),
+                ) {
+                    LiveBadge()
+                    Text(
+                        "${status.homeScore}–${status.awayScore}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = SkyPalette.TextPrimary,
+                    )
+                    Text(
+                        status.minute,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = SkyPalette.TextSecondary,
+                    )
+                }
+            }
+            is FixtureStatus.Finished -> {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(SkySpacing.xs),
+                ) {
+                    Text("FT", style = MaterialTheme.typography.labelMedium, color = SkyPalette.TextMuted)
+                    Text(
+                        "${status.homeScore}–${status.awayScore}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = SkyPalette.TextPrimary,
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(SkySpacing.s))
+
+        if (channels.isEmpty()) {
+            Text(
+                "Not on your channels",
+                style = MaterialTheme.typography.bodySmall,
+                color = SkyPalette.TextMuted,
+            )
+        } else {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(SkySpacing.xs),
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+            ) {
+                channels.forEach { channel ->
+                    FixtureChannelChip(channel = channel, onClick = { onPlayChannel(channel) })
+                }
+            }
+        }
+    }
+}
+
+/** Outlined, low-emphasis chip for one EPG channel matched to a fixture --
+ *  private to [FixtureCard], not a top-level export, per the design brief. */
+@Composable
+private fun FixtureChannelChip(
+    channel: ChannelEntity,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = modifier
+            .clip(RoundedCornerShape(SkyRadius.chip))
+            .border(1.dp, SkyPalette.Accent, RoundedCornerShape(SkyRadius.chip))
+            .scaledClickable(onClick)
+            .padding(horizontal = SkySpacing.s, vertical = 4.dp),
+    ) {
+        Icon(
+            Icons.Default.PlayArrow, null,
+            tint = SkyPalette.Accent,
+            modifier = Modifier.size(12.dp),
+        )
+        Text(
+            channel.name,
+            style = MaterialTheme.typography.labelSmall,
+            color = SkyPalette.Accent,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
