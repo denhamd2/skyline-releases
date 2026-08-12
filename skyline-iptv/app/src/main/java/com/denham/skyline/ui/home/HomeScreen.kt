@@ -312,9 +312,9 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
         .flatMapLatest { member ->
             val apiKey = BuildConfig.FOOTBALL_DATA_API_KEY
             if (member != "David" || apiKey.isBlank()) {
-                flowOf(FootballSectionState.Hidden)
+                flowOf<FootballSectionState>(FootballSectionState.Hidden)
             } else {
-                kotlinx.coroutines.flow.flow {
+                kotlinx.coroutines.flow.flow<FootballSectionState> {
                     emit(FootballSectionState.Loading)
                     val manUtdNext = runCatching { container.footballRepository.nextManUtdFixture(apiKey) }
                         .onFailure { android.util.Log.e("HomeViewModel", "Man Utd fixture fetch failed", it) }
