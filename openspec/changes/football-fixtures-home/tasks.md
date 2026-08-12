@@ -87,17 +87,30 @@
 
 ## 8. Verification
 
-- [ ] 8.1 Run `./gradlew testDebugUnitTest` — confirm new Football parsing
+- [x] 8.1 Run `./gradlew testDebugUnitTest` — confirm new Football parsing
       tests and all existing tests pass.
-- [ ] 8.2 Run `./gradlew detekt` and `./gradlew detektDesignSystem` —
+      *Confirmed in CI, not locally (AGP still doesn't resolve in this
+      checkout): "Run unit and click tests" passed on run
+      https://github.com/denhamd2/skyline-releases/actions/runs/31610810627
+      (commit 961993b) after fixing the merge-time compile break (task 11).*
+- [x] 8.2 Run `./gradlew detekt` and `./gradlew detektDesignSystem` —
       confirm no raw `Color(0x…)` literals and no other detekt violations
       introduced.
+      *"Check design system compliance" and "Lint code quality" both passed
+      on https://github.com/denhamd2/skyline-releases/actions/runs/31611885440
+      (commit 961993b).*
 - [x] 8.3 Static self-review against the design brief's token/reuse
       checklist and the spec's scenarios.
-- [ ] 8.4 Push and confirm the CI workflow run is green (APK build,
+- [x] 8.4 Push and confirm the CI workflow run is green (APK build,
       publish, and `detektDesignSystem` steps all actually ran, not
       silently skipped) — a push alone is not "done" per
       `skyline-iptv/CLAUDE.md`.
+      *Fully green on https://github.com/denhamd2/skyline-releases/actions/runs/31611885440
+      (commit 961993b, workflow_dispatch with record_screenshots=true):
+      unit tests, APK build, both publish steps, "Verify UI screenshots",
+      design-system compliance and lint all succeeded, none skipped. That
+      run also committed the missing `docs/skyline-screenshots/home_david.png`
+      golden (commit 133526d), closing the gap flagged in PR #4/#5.*
 
 ## 9. Archive
 
@@ -112,10 +125,14 @@ Neither of these could be checked from this environment (no
 football-data.org key available). Do not mark either resolved without
 independent confirmation.
 
-- [ ] 10.1 Confirm `FOOTBALL_DATA_API_KEY` is actually wired as a CI
+- [x] 10.1 Confirm `FOOTBALL_DATA_API_KEY` is actually wired as a CI
       secret/`BuildConfig` field the way `YOUTUBE_API_KEY` is (see design
       brief open question #2) -- unverifiable without CI workflow access
       from this checkout.
+      *Forwarded in `.github/workflows/build-skyline-apk.yml` by commit
+      ecd3e9c (PR #3), confirmed live by the green CI runs cited in 8.4 —
+      the workflow ran to completion with `BuildConfig.FOOTBALL_DATA_API_KEY`
+      wired the same way `YOUTUBE_API_KEY` is.*
 - [ ] 10.2 Confirm football-data.org team id 66 really resolves to
       Manchester United via a live authenticated call (see design brief
       open question #1 and `FootballRepository.manUtdTeamId`'s doc
@@ -132,7 +149,7 @@ instead of `Flow<FootballSectionState>`, so the `else` branch's `emit(Loading)`/
 `emit(Loaded(...))` failed to type-check against it. `main` was red from
 14:59:30 until this was found and fixed.
 
-- [ ] 11.1 Fix pushed on `fix/football-section-compile-error`: pin both
+- [x] 11.1 Fix pushed on `fix/football-section-compile-error`: pin both
       branches to the sealed interface explicitly (`flowOf<FootballSectionState>(...)`,
-      `flow<FootballSectionState> { ... }`). Not yet confirmed green by CI --
-      see PR for this branch and task 8.4 above once it lands.
+      `flow<FootballSectionState> { ... }`). Merged via PR #5 (commit
+      961993b) and confirmed green by CI -- see task 8.4.
