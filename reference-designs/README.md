@@ -8,8 +8,8 @@ match pixel-for-pixel.
 
 ## Structure
 
-- `mobile/` — mobile app screens (Home, Live, Player, TV Guide, Downloads, Account)
-- `desktop/` — desktop/TV UI screens (Home, TV Guide, Continue Watching, Settings)
+- `mobile/mobile-screens.png` — mobile app screens (Home, Live, Player, TV Guide, Downloads, Account)
+- `desktop/desktop-screens.png` — desktop/TV UI screens (Home, TV Guide, Continue Watching, Settings)
 
 ## Screens captured
 
@@ -29,5 +29,5 @@ match pixel-for-pixel.
 
 ## Adding files
 
-Drop the source image files (PNG/JPG/Figma export) into the matching subfolder above,
-named descriptively, e.g. `mobile/mobile-home.png`, `desktop/desktop-tv-guide.png`.
+Drop additional source image files (PNG/JPG/Figma export) into the matching subfolder
+above, named descriptively, e.g. `mobile/mobile-player.png`, `desktop/desktop-settings.png`.
