@@ -29,6 +29,9 @@ jobs:
       # Compiled into BuildConfig to enable channel/playlist search. Absent is
       # fine: search is then hidden and subscriptions are added by URL.
       YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+      # Compiled into BuildConfig for the Home football fixtures section.
+      # Absent is fine: FootballRepository degrades to an empty section.
+      FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
