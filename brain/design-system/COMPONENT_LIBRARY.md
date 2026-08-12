@@ -566,7 +566,7 @@ When building a new screen or component:
 ---
 
 **Last Updated:** 2026-07-23 v1.0  
-**Related Docs:** `docs/sky-design-language.md`, `.github/pull_request_template.md`
+**Related Docs:** `brain/design-system/sky-design-language.md`, `.github/pull_request_template.md`
 
 ### Secondary Button
 
@@ -587,7 +587,7 @@ OutlinedButton(
 
 **File:** `ui/home/HomeScreen.kt` (see line ~450)  
 **Usage:** Over dark hero artwork or gradient backgrounds  
-**Design System:** [White CTA Button](docs/SKY_DESIGN_SYSTEM.md#white-call-to-action)
+**Design System:** [White CTA Button](brain/design-system/SKY_DESIGN_SYSTEM.md#white-call-to-action)
 
 **Properties:**
 - Container: Color.White
@@ -621,7 +621,7 @@ Button(
 **File:** `tv/TvComponents.kt` → `TvLandscapeCard`  
 **Usage:** Channel/movie/series tiles in horizontal rails  
 **Aspect Ratio:** 16:9 (landscape)  
-**Design System:** [Cards - Standard](docs/SKY_DESIGN_SYSTEM.md#cards)
+**Design System:** [Cards - Standard](brain/design-system/SKY_DESIGN_SYSTEM.md#cards)
 
 **Properties:**
 - Dimensions: Width from LazyRow, height maintains 16:9 aspect
@@ -701,7 +701,7 @@ Card(
 
 **File:** `ui/home/HomeScreen.kt` (line ~200)  
 **Usage:** Every screen root container  
-**Design System:** [Spacing - Safe Areas](docs/SKY_DESIGN_SYSTEM.md#spacing)
+**Design System:** [Spacing - Safe Areas](brain/design-system/SKY_DESIGN_SYSTEM.md#spacing)
 
 **Properties:**
 - Padding: 16dp on mobile, 20dp on TV
@@ -725,7 +725,7 @@ Column(
 
 **File:** `ui/home/HomeScreen.kt` → Featured movie/show hero  
 **Usage:** Full-bleed artwork with overlay title and CTA  
-**Design System:** [Hero Spotlight](docs/SKY_DESIGN_SYSTEM.md#hero-spotlight)
+**Design System:** [Hero Spotlight](brain/design-system/SKY_DESIGN_SYSTEM.md#hero-spotlight)
 
 **Properties:**
 - Full width (fill screen edge to edge)
@@ -857,7 +857,7 @@ Text(
 
 **File:** `ui/home/HomeScreen.kt` → Category rails  
 **Usage:** Movies, series, channels in rows  
-**Design System:** [LazyRow / Rails](docs/SKY_DESIGN_SYSTEM.md#lazyrow-carousels)
+**Design System:** [LazyRow / Rails](brain/design-system/SKY_DESIGN_SYSTEM.md#lazyrow-carousels)
 
 **Properties:**
 - Padding: 16dp (mobile), 20dp (TV)
@@ -929,7 +929,7 @@ LazyVerticalGrid(
 
 **File:** `ui/components/Motion.kt` → `Modifier.enterReveal(delayMs)`  
 **Usage:** Rails and lists on first render  
-**Design System:** [Enter Animations](docs/SKY_DESIGN_SYSTEM.md#enter-animations)
+**Design System:** [Enter Animations](brain/design-system/SKY_DESIGN_SYSTEM.md#enter-animations)
 
 **Spec:**
 - Duration: 340ms
@@ -955,7 +955,7 @@ LazyRow(...) {
 
 **File:** `ui/navigation/SkylineNavHost.kt` (line ~165)  
 **Usage:** Navigating between screens  
-**Design System:** [Screen Transitions](docs/SKY_DESIGN_SYSTEM.md#screen-transitions)
+**Design System:** [Screen Transitions](brain/design-system/SKY_DESIGN_SYSTEM.md#screen-transitions)
 
 **Spec:**
 - Duration: 200ms
@@ -977,7 +977,7 @@ NavHost(
 
 **File:** `tv/TvComponents.kt` → `Modifier.tvClickable()`  
 **Usage:** D-pad focus on TV  
-**Design System:** [Focus Motion (TV)](docs/SKY_DESIGN_SYSTEM.md#focus-motion-tv-only)
+**Design System:** [Focus Motion (TV)](brain/design-system/SKY_DESIGN_SYSTEM.md#focus-motion-tv-only)
 
 **Spec:**
 - Scale: 1.04x
@@ -1039,7 +1039,7 @@ TextField(
 
 **File:** `tv/TvComponents.kt`  
 **Usage:** All interactive elements on TV  
-**Design System:** [TV Focus Navigation](docs/SKY_DESIGN_SYSTEM.md#focus-navigation)
+**Design System:** [TV Focus Navigation](brain/design-system/SKY_DESIGN_SYSTEM.md#focus-navigation)
 
 **Applied via `Modifier.tvClickable()`:**
 - White 3dp outline on focus
@@ -1111,7 +1111,7 @@ Image(
    - Code example
    - Accessibility notes (if special)
 
-3. Update `docs/SKY_DESIGN_SYSTEM.md` if it introduces new design tokens or patterns
+3. Update `brain/design-system/SKY_DESIGN_SYSTEM.md` if it introduces new design tokens or patterns
 
 4. Reference it in the Detekt ComponentReuse rule (so duplicates are flagged)
 
@@ -1119,6 +1119,6 @@ Image(
 
 ## See Also
 
-- **Design System:** `docs/SKY_DESIGN_SYSTEM.md` — Colors, spacing, motion, principles
-- **Enforcement:** `docs/DESIGN_SYSTEM_ENFORCEMENT.md` — How violations are caught
-- **Sky Design Language:** `docs/sky-design-language.md` — Research & principles
+- **Design System:** `brain/design-system/SKY_DESIGN_SYSTEM.md` — Colors, spacing, motion, principles
+- **Enforcement:** `brain/design-system/DESIGN_SYSTEM_ENFORCEMENT.md` — How violations are caught
+- **Sky Design Language:** `brain/design-system/sky-design-language.md` — Research & principles

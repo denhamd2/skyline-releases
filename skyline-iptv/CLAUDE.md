@@ -56,7 +56,7 @@ Design rules load automatically when working on `skyline-iptv/**/*.kt` — see
 Colour is machine-enforced: `detektDesignSystem` fails on any `Color(0x…)`
 literal in UI code at zero tolerance and names the `SkyPalette` token to use.
 Spacing, typography, motion and component reuse are not — those rules were
-removed as unusable, so they are reviewed by eye. `docs/DESIGN_SYSTEM_ENFORCEMENT.md`
+removed as unusable, so they are reviewed by eye. `brain/design-system/DESIGN_SYSTEM_ENFORCEMENT.md`
 labels every mechanism Enforced, Optional or Not implemented; keep it honest,
 because a documented check that does not run is worse than no check.
 

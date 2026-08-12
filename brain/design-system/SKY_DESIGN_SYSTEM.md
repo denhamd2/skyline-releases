@@ -73,7 +73,7 @@ Sky Digital maintains **Sky UI** — an official component + Figma design system
 
 ### Research Sources
 
-For full details and citations, see `docs/sky-design-language.md`. Official Sky Design System references:
+For full details and citations, see `brain/design-system/sky-design-language.md`. Official Sky Design System references:
 - **Sky UI Design System — Motion:** http://sky-ui.cf.sky.com/guides/motion/
 - **Sky UI Design System — Easings:** http://sky-ui.cf.sky.com/foundations/easings
 - **Sky Toolkit (Open Source):** https://github.com/sky-uk/toolkit/
@@ -1450,7 +1450,7 @@ If a design question arises:
 - **Example Screens:** `ui/home/HomeScreen.kt`, `tv/TvScreens.kt`
 
 ### Design Research & Principles
-- **Sky Design Language Research:** `docs/sky-design-language.md` — Detailed analysis of Sky UI principles, motion specifications, TV interaction patterns, and implementation mapping
+- **Sky Design Language Research:** `brain/design-system/sky-design-language.md` — Detailed analysis of Sky UI principles, motion specifications, TV interaction patterns, and implementation mapping
 - **Official Sky UI System:** http://sky-ui.cf.sky.com/ (may require Sky login)
 - **Sky Toolkit (Open Source):** https://github.com/sky-uk/toolkit
 
