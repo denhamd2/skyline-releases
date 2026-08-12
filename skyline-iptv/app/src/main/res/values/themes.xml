@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark launch theme so the window never flashes white before Compose
+         takes over. The real theming is the Material 3 ColorScheme in code.
+
+         colorPrimary/colorPrimaryDark/colorAccent/isLightTheme are the
+         exception: they exist only for MediaRouter's Cast chooser dialog,
+         which is a View system dialog the framework builds itself from the
+         Activity's own theme, not from the Theme.AppCompat wrapper
+         CastButton.kt applies locally to the button widget, which never
+         reaches it. These are AppCompat's own custom attrs (unprefixed,
+         from androidx.appcompat.R.attr, confirmed against
+         MediaRouterThemeHelper's source), settable on any theme regardless
+         of its parent since the appcompat dependency declares them into the
+         app's merged attribute table; they are not the platform
+         android:colorPrimary etc. Without them,
+         MediaRouterThemeHelper.getControllerColor() resolves an undefined
+         (fully transparent) controller color and
+         ColorUtils.calculateContrast() throws "background can not be
+         translucent: #0", crashing on every tap of the cast icon. Values
+         match SkyPalette.Accent/Canvas in Theme.kt. -->
+    <style name="Theme.Skyline" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#0A0E1A</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="colorPrimary">#0B69F5</item>
+        <item name="colorPrimaryDark">#05070A</item>
+        <item name="colorAccent">#0B69F5</item>
+        <item name="isLightTheme">false</item>
+    </style>
+</resources>

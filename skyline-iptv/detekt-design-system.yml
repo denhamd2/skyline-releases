@@ -1,0 +1,61 @@
+# Design-system gate. Runs as the `detektDesignSystem` Gradle task, separately
+# from the broad `detekt` task configured by detekt.yml.
+#
+# Why two configs rather than one:
+#
+# The broad run reports ~393 findings -- MagicNumber, FunctionNaming, LongMethod
+# and similar -- accumulated while the lint gate was silently broken. That is
+# ordinary code debt, and it sits behind a soft `maxIssues` allowance so it
+# blocks nothing. The design-system rules, by contrast, report zero findings on
+# the current codebase: every hardcoded colour in the app lives in
+# ui/theme/Theme.kt, which is where the tokens are defined and is excluded here.
+#
+# Enforcing both through one allowance would mean either tolerating new design
+# violations (they would vanish into the allowance) or failing the build on an
+# unrelated magic number. Splitting them lets the design system be enforced at
+# zero tolerance -- which is only reasonable because it is already clean -- while
+# generic debt stays advisory.
+#
+# No baseline file is needed for the same reason: there is nothing to record.
+
+config:
+  # Safe here by construction: the only ruleset named below is
+  # sky-design-system, which :detekt-rules registers.
+  validation: true
+
+build:
+  # Zero tolerance. Any design-system finding fails this task.
+  maxIssues: 0
+
+# Every built-in ruleset is switched off explicitly rather than relying on
+# what an unmentioned ruleset defaults to. This task exists to answer one
+# question -- does the change violate the design system -- and a built-in rule
+# firing here would blur that answer with the broad run's.
+comments:
+  active: false
+complexity:
+  active: false
+coroutines:
+  active: false
+empty-blocks:
+  active: false
+exceptions:
+  active: false
+naming:
+  active: false
+performance:
+  active: false
+potential-bugs:
+  active: false
+style:
+  active: false
+
+sky-design-system:
+  active: true
+  # ui/theme defines the tokens, so its colour literals are the source of
+  # truth, not violations. ui/components is where shared primitives live and
+  # is exempt for the same reason. Tests are not product UI.
+  excludes: [ '**/test/**', '**/androidTest/**', '**/ui/theme/**', '**/ui/components/**' ]
+
+  SkyPaletteUsage:
+    active: true

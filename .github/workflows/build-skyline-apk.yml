@@ -1,0 +1,165 @@
+name: Build Skyline APK # phone + TV
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "skyline-iptv/**"
+      - ".github/workflows/build-skyline-apk.yml"
+  workflow_dispatch:
+    inputs:
+      record_screenshots:
+        description: >-
+          Record new golden screenshots instead of verifying against the
+          committed ones. Use after a deliberate visual change; leave off to
+          just check whether current output still matches.
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: skyline-iptv
+    env:
+      # Compiled into BuildConfig to enable channel/playlist search. Absent is
+      # fine: search is then hidden and subscriptions are added by URL.
+      YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      # Plain unit + click tests, and this one DOES gate the APK: a broken
+      # stream URL builder or XMLTV parser is a correctness failure that
+      # should never reach a phone. Roborazzi captures are inert here (no
+      # record/verify system property set), so screenshot comparison does not
+      # run at this point -- it runs after publishing, below.
+      - name: Run unit and click tests
+        run: ./gradlew testDebugUnitTest --no-daemon
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk Skyline.apk
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: skyline-apk
+          path: skyline-iptv/Skyline.apk
+
+      # Keep a stable, phone-friendly download URL:
+      # https://github.com/<repo>/releases/tag/skyline-latest
+      # This repo is both source and distribution, so the in-app updater
+      # (which sends no credentials) can read this release directly with no
+      # separate mirroring step.
+      - name: Publish to skyline-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Must match versionName in app/build.gradle.kts (1.1.$GITHUB_RUN_NUMBER).
+          APP_VERSION: 1.1.${{ github.run_number }}
+        run: |
+          # The app compares this build-version marker against its own
+          # BuildConfig.VERSION_NAME to decide whether an update exists. The tag
+          # is rolling and identical in every release, so it cannot serve that
+          # purpose -- comparing it reported "update available" forever.
+          NOTES=$(printf '%s\n\n%s\n' \
+            "Latest Skyline APK, rebuilt automatically on every change. Installed by the in-app updater." \
+            "build-version: $APP_VERSION")
+
+          if gh release view skyline-latest >/dev/null 2>&1; then
+            # Refreshed on every run, not just at creation: otherwise the
+            # marker stays pinned to the first published version forever.
+            gh release edit skyline-latest --title "Skyline $APP_VERSION" --notes "$NOTES"
+          else
+            gh release create skyline-latest --title "Skyline $APP_VERSION" --notes "$NOTES"
+          fi
+          gh release upload skyline-latest Skyline.apk --clobber
+
+      # Screenshot comparison runs AFTER publishing, for the same reason lint
+      # does (see below). A golden mismatch is a "look at this" signal, not a
+      # correctness failure, and it must never withhold an installable build.
+      # That is not hypothetical: run 85 failed here and skipped the APK,
+      # which held back a fix for a crash-on-every-Cast-tap.
+      #
+      # Tests write PNGs straight into docs/skyline-screenshots/ (see
+      # ScreenshotTests.kt), not build/outputs/roborazzi/ -- that path is
+      # gitignored, so a golden written there could never be a committed
+      # baseline for verify to compare against, and never was.
+      - name: Verify UI screenshots
+        if: always()
+        run: |
+          if [ "${{ github.event.inputs.record_screenshots }}" = "true" ]; then
+            ./gradlew recordRoborazziDebug --no-daemon
+          else
+            ./gradlew verifyRoborazziDebug --no-daemon
+          fi
+
+      # On a failing verify, Roborazzi writes *_actual.png / *_compare.png
+      # beside the untouched golden, so this uploads regardless of outcome.
+      - name: Upload UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: skyline-screenshots
+          path: docs/skyline-screenshots/
+          if-no-files-found: ignore
+
+      # Commits updated goldens back to the branch, but only for an explicit
+      # record_screenshots dispatch -- the one case where new PNGs are meant
+      # to become the baseline. A normal push only verifies: on success
+      # nothing changed to commit, and on failure the diagnostics above are
+      # deliberately left uncommitted, so a red run can never quietly rewrite
+      # the thing it was supposed to be checking against.
+      - name: Publish recorded screenshots to branch
+        if: ${{ always() && github.event.inputs.record_screenshots == 'true' }}
+        working-directory: .
+        run: |
+          git config user.name "skyline-ci"
+          git config user.email "ci@users.noreply.github.com"
+          git add docs/skyline-screenshots
+          if ! git diff --cached --quiet; then
+            git commit -m "CI: record updated UI screenshots [skip ci]"
+            git pull --rebase origin "$GITHUB_REF_NAME" || true
+            git push || true
+          fi
+
+      # Lint runs last, deliberately. It used to run first, and when its config
+      # referenced a ruleset detekt could not load it hard-failed the job and
+      # skipped every step below it -- so no APK reached a phone for about
+      # three weeks and nothing said so. Running it after publishing keeps the
+      # gate (a violation still fails the job and shows the run as red) while
+      # guaranteeing that a style problem never costs an installable build.
+      - name: Check design system compliance
+        run: ./gradlew detektDesignSystem --no-daemon
+
+      # Puts the violations and their proposed fixes on the run's summary page,
+      # so the remedy is readable without opening the log. The rule names the
+      # SkyPalette token to use, so this is a fix list, not just a defect list.
+      - name: Report design system violations
+        if: failure()
+        run: |
+          REPORT=app/build/reports/detekt/detektDesignSystem.md
+          {
+            echo "## Design system violations"
+            echo
+            echo "Each entry names the token to use. See docs/SKY_DESIGN_SYSTEM.md."
+            echo
+            if [ -f "$REPORT" ]; then cat "$REPORT"; else echo "_No report produced -- the check failed before analysis._"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # The broad quality run: built-in detekt rules against a soft allowance
+      # for debt that predates the gate working. always() so a design-system
+      # failure above doesn't hide it -- one run, whole picture.
+      - name: Lint code quality
+        if: always()
+        run: ./gradlew detekt --no-daemon
