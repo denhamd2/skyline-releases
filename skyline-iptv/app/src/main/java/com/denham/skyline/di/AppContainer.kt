@@ -29,7 +29,7 @@ import kotlinx.coroutines.flow.StateFlow
  * overridable/protected, purely so a Robolectric screenshot test can swap in
  * an in-memory Room DB and a network-disabled OkHttpClient without touching
  * the production wiring below. See `HomeScreenshotTest` for the test double
- * (`InMemoryAppContainer`) that uses this seam.
+ * (`ScreenshotAppContainer`) that uses this seam.
  */
 @UnstableApi
 open class AppContainer(context: Context) {
