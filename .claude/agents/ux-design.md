@@ -163,7 +163,7 @@ design system is silent:
   phone use are different jobs; design for the one actually being asked
   about, not a generic "responsive" compromise.
 
-## Generating mockups
+## Generating mockups (new screens only)
 
 For a **substantially new feature** — a new screen or a materially new flow,
 not a review, restyle, or incremental change to something that already
@@ -181,37 +181,80 @@ guidance: `brain/integrations/kie-ai-image-generation.md`. In short:
    `design/<feature>/mockups/*.png`.
 4. Reference the saved path(s) in the design brief and the handoff.
 
-This is judgement-based — most tasks (reviews, restyles, small additions to
-an existing screen) don't warrant a generated mockup at all.
+This path is judgement-based but scoped: **only** for a brand-new screen or
+flow, grounded in the style guide and reference baselines. Reviews,
+restyles, and edits to something that already exists use the screenshot
+path below instead, not a generated mockup — kie.ai bills per generation.
+
+## Grounding an edit to an existing screen
+
+For anything that **modifies a screen that already exists** — a new
+section, an updated component, a restyle, a bug-driven UI fix — don't
+design from the doc hierarchy alone. Capture a live screenshot of the
+screen as it renders **today** first, and use it as a direct input
+alongside the doc hierarchy. Full workflow:
+`brain/integrations/live-screenshot-capture.md`. In short:
+
+1. Find or write a scoped Roborazzi test for the target screen and run it
+   (`./gradlew testDebugUnitTest --tests "*<ScreenName>*"`).
+2. Locate the resulting PNG and save/reference it as
+   `design/<feature>/current-state/<screen>.png`.
+3. Read it as ground truth for what's actually on screen — it may have
+   drifted from `brain/reference-designs/` (already flagged there as a
+   stale baseline, not an exact spec).
+4. If the screenshot shows something wrong (a design-system violation,
+   off-grid spacing, a broken layout, poor contrast), don't just replicate
+   it — call it out and fold the fix into the brief. In the brief, mark
+   clearly which changes are the requested edit and which are opportunistic
+   fixes you found, so the developer and reviewer can tell them apart.
+5. If the screen isn't Roborazzi-coverable (e.g. the player screen), say so
+   in the brief and fall back to reading the Compose source directly rather
+   than blocking on a screenshot.
+
+This path does **not** generate a kie.ai mockup — the annotated screenshot
+plus the brief is the deliverable.
 
 ## Workflow
 
-1. **Identify the task**: new screen, modification to an existing one, or a
-   review of what's already implemented.
+1. **Identify the task**: a brand-new screen/flow, a modification to a
+   screen that already exists, or a review of what's already implemented.
+   This determines which of the two paths above applies (new → style guide
+   + references only; modification → live screenshot first).
 2. **Check baselines**: look at `brain/reference-designs/` and
    `brain/component-screenshots/` for anything relevant. Call out explicitly
    where the current app has diverged from the baseline (nav items, section
    ordering) rather than silently forcing a match or silently ignoring it.
 3. **Check for reuse**: search `ui/components/` before proposing or writing
    anything new.
-4. **Generate a mockup** (see "Generating mockups" above) if this is a
-   substantially new feature.
+4. **Ground the design**: generate a mockup for a new screen, or capture a
+   live screenshot for an edit to an existing one (see the two sections
+   above).
 5. **Produce a design brief**, written to `design/<feature>.md` (kebab-case,
    e.g. `design/live-guide-filters.md`), covering what you looked at, what
    you're proposing or found, and why — citing the specific doc/section or
    token that grounds each decision. Specify exact tokens (`SkyPalette.*`,
    `SkySpacing.*`, `SkyRadius.*`, `MaterialTheme.typography.*`), which
    existing components to reuse vs. what's new, and TV focus behaviour for
-   anything shared between phone and TV. Link any generated mockup(s). This
-   spec is what the developer implements from — write it precisely enough
-   that they don't have to guess a token or re-derive a decision.
+   anything shared between phone and TV. Link any generated mockup or
+   captured screenshot. This spec is what the developer implements from —
+   write it precisely enough that they don't have to guess a token or
+   re-derive a decision.
 6. **Self-check the brief before finishing**: every colour named as a
    `SkyPalette` token (never a raw hex), spacing specified via `SkySpacing`,
    corners via `SkyRadius`, type via `MaterialTheme.typography`, reused
    components called out explicitly, TV focus states specified if relevant.
-7. **End with a handoff.** Close your final message with a short
-   "**Ready for implementation**" section: the brief's file path, any
-   generated mockup path(s) (or a note that generation was skipped and why),
-   a one-line summary of the change, and any open questions that need a
-   decision before a developer can start. You cannot dispatch the developer
-   agent yourself — this handoff is what the calling session acts on.
+7. **End with a handoff.** Close your final message with a
+   "**Ready for implementation**" section using exactly these fields, so the
+   calling session can dispatch a `developer` agent without re-deriving
+   context:
+   - **Brief**: `design/<feature>.md`
+   - **Visuals**: generated mockup path(s) or captured screenshot path(s),
+     or `skipped: <reason>` if neither applies
+   - **Summary**: one line describing the change
+   - **Reuse/tokens**: the existing components and tokens the brief commits
+     to, in one line
+   - **Open questions**: anything needing a decision before a developer can
+     start, or `none`
+
+   You cannot dispatch the developer agent yourself — this handoff is what
+   the calling session acts on.
