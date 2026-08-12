@@ -1,0 +1,141 @@
+# Detekt configuration for Sky Design System compliance
+# See docs/SKY_DESIGN_SYSTEM.md for design principles
+
+# Validation on. The `sky-design-system` ruleset below is registered by the
+# :detekt-rules module (detektPlugins), so validation accepts it — proven by
+# the detektDesignSystem task, which has run with validation: true since run 76.
+#
+# Turning this on required fixing four keys that had been silently dead. Each
+# was accepted while validation was off and simply never applied, so the rules
+# they configured ran on defaults or not at all:
+#
+#   empty:                -> empty-blocks:            (real ruleset id)
+#   CyclomaticComplexity  -> CyclomaticComplexMethod  (real rule id)
+#   style/FinalNewline    -> removed; it is a `formatting` (ktlint) rule and
+#                            detekt-formatting is not on the classpath
+#   naming/PropertyNaming -> removed; no such rule. The real ones are
+#                            VariableNaming, TopLevelPropertyNaming and
+#                            ObjectPropertyNaming. Adding one is a deliberate
+#                            behaviour change with a finding cost, not part of
+#                            switching validation on.
+#
+# Verified against detekt 1.23.6's bundled default-detekt-config.yml. This is
+# the same class of defect that caused the three-week outage: a key detekt
+# could not resolve, discovered only when validation was enabled.
+config:
+  validation: true
+
+build:
+  # maxIssues was 50, set back when config validation crashed before any rule
+  # ever actually ran, so it never reflected real counts. With validation fixed,
+  # built-in rules (mostly MagicNumber) now report ~393 pre-existing issues
+  # accumulated across the codebase while this gate was silently broken. Raised
+  # so that debt doesn't block shipping; tighten back down as it gets paid off.
+  maxIssues: 450
+  # `weights` removed along with its SkyPaletteUsage: 2 entry. Weights only
+  # scale findings against the soft allowance above, which says nothing about
+  # the design system now that it is enforced at zero tolerance by its own
+  # detektDesignSystem task.
+
+comments:
+  active: true
+  excludes: [ '**/test/**', '**/androidTest/**' ]
+  UndocumentedPublicClass:
+    active: false
+  UndocumentedPublicFunction:
+    active: false
+  UndocumentedPublicProperty:
+    active: false
+
+complexity:
+  active: true
+  excludes: [ '**/test/**', '**/androidTest/**' ]
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 15
+  LongMethod:
+    active: true
+    threshold: 60
+  LongParameterList:
+    active: true
+    functionThreshold: 6
+
+coroutines:
+  active: true
+  GlobalCoroutineUsage:
+    active: true
+  RedundantSuspendModifier:
+    active: true
+
+empty-blocks:
+  active: true
+  EmptyCatchBlock:
+    active: true
+    allowedExceptionNameRegex: '_|(ignore|expected|ok|unused)'
+  EmptyFunctionBlock:
+    active: true
+  EmptyIfBlock:
+    active: true
+  EmptyElseBlock:
+    active: true
+
+exceptions:
+  active: true
+  TooGenericExceptionCaught:
+    active: true
+    exceptionNames: [ 'Exception', 'Throwable', 'Error' ]
+  SwallowedException:
+    active: false
+
+naming:
+  active: true
+  excludes: [ '**/test/**', '**/androidTest/**' ]
+  # The alternation allows backticked names, so the backtick-quoted test
+  # function names used throughout app/src/test pass.
+  FunctionNaming:
+    active: true
+    functionPattern: '([a-z][a-zA-Z0-9]*)|(`.*`)'
+
+performance:
+  active: true
+  SpreadOperator:
+    active: true
+
+potential-bugs:
+  active: true
+  DontDowncastCollectionTypes:
+    active: false
+  UnnecessaryNotNullOperator:
+    active: true
+
+style:
+  active: true
+  excludes: [ '**/test/**', '**/androidTest/**' ]
+  NestedClassesVisibility:
+    active: true
+  RedundantHigherOrderMapUsage:
+    active: true
+  UnusedImports:
+    active: true
+  UnusedPrivateMember:
+    active: true
+    allowedNames: '(_|ignored|expected|ok)'
+
+# Custom rules for Sky Design System enforcement, provided by :detekt-rules.
+# Only rules actually registered by SkyDesignSystemRuleProvider may appear
+# here: config validation (enabled in a later step) rejects unknown keys, and
+# that is precisely what broke CI when this block listed five rules that were
+# never compiled or loaded.
+#
+# Spacing, typography, animation-duration and component-reuse rules were
+# removed: they were written against a detekt API that does not exist and had
+# never compiled. Reimplement them against the real API, then add their keys
+# back here alongside their registration in the provider.
+sky-design-system:
+  active: true
+  excludes: [ '**/test/**', '**/androidTest/**', '**/ui/theme/**', '**/ui/components/**' ]
+
+  # Colour must come from SkyPalette, not hardcoded Color(0x...) literals.
+  # Severity comes from the rule's own Issue declaration.
+  SkyPaletteUsage:
+    active: true

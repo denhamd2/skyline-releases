@@ -1,0 +1,7 @@
+# Android (skyline-iptv)
+.gradle/
+local.properties
+*.apk
+*.aab
+skyline-iptv/app/schemas/
+skyline-iptv/**/build/
