@@ -1,5 +1,7 @@
 package com.denham.skyline.core
 
+import java.time.LocalDate
+import java.time.ZoneId
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -38,7 +40,7 @@ class FootballParsingTest {
         assertEquals("Man City", fixture.awayTeam)
         assertEquals("Premier League", fixture.competition)
         val scheduled = fixture.status as FixtureStatus.Scheduled
-        assertTrue(scheduled.kickoffLocal.startsWith("KO "))
+        assertTrue(scheduled.kickoffLocal.contains("KO "))
     }
 
     @Test
@@ -207,5 +209,72 @@ class FootballParsingTest {
         assertEquals(2, resp.matches.size)
         val fixtures = FootballMapping.toFixtures(resp.matches)
         assertEquals(2, fixtures.size)
+    }
+
+    // -- formatKickoffLocal date-prefix logic --------------------------
+    //
+    // These directly exercise FootballMapping.formatKickoffLocal (internal,
+    // same package) with an injected `today` so the Today/Tomorrow/date-
+    // fallback boundary is deterministic rather than depending on the
+    // system clock at test-run time. Covers the "Man Utd next" spotlight
+    // gap flagged in design/david-football-fixtures.md's post-implementation
+    // review: a bare "KO 17:30" misrepresents a fixture several days out as
+    // if it were today.
+
+    // Builds a kickoff instant from a wall-clock time *in the system default
+    // zone*, the same zone formatKickoffLocal converts into -- so these
+    // tests land on the intended calendar date regardless of which
+    // timezone the machine running them happens to be in (unlike parsing a
+    // fixed UTC string, which could roll over to a different local date
+    // depending on the runner's offset).
+    private fun kickoffMsOn(date: LocalDate, hour: Int, minute: Int): Long =
+        date.atTime(hour, minute).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+
+    @Test
+    fun `formatKickoffLocal prefixes Today when kickoff date matches today`() {
+        val today = LocalDate.of(2026, 8, 12)
+        val kickoffMs = kickoffMsOn(today, 17, 30)
+        val label = FootballMapping.formatKickoffLocal(kickoffMs, today = today)
+        assertTrue("expected Today prefix, got: $label", label.startsWith("Today, KO "))
+    }
+
+    @Test
+    fun `formatKickoffLocal prefixes Tomorrow when kickoff date is one day ahead`() {
+        val today = LocalDate.of(2026, 8, 12)
+        val kickoffMs = kickoffMsOn(today.plusDays(1), 17, 30)
+        val label = FootballMapping.formatKickoffLocal(kickoffMs, today = today)
+        assertTrue("expected Tomorrow prefix, got: $label", label.startsWith("Tomorrow, KO "))
+    }
+
+    @Test
+    fun `formatKickoffLocal falls back to a short date beyond tomorrow`() {
+        val today = LocalDate.of(2026, 8, 12)
+        val kickoffDate = today.plusDays(4) // 2026-08-16, a Sunday
+        val kickoffMs = kickoffMsOn(kickoffDate, 15, 0)
+        val label = FootballMapping.formatKickoffLocal(kickoffMs, today = today)
+        assertTrue(
+            "expected a short date prefix like 'Sun 16 Aug', got: $label",
+            label.startsWith("Sun 16 Aug, KO "),
+        )
+    }
+
+    @Test
+    fun `formatKickoffLocal falls back to a short date for a past kickoff`() {
+        val today = LocalDate.of(2026, 8, 12)
+        val kickoffDate = today.minusDays(2) // 2026-08-10, a Monday
+        val kickoffMs = kickoffMsOn(kickoffDate, 15, 0)
+        val label = FootballMapping.formatKickoffLocal(kickoffMs, today = today)
+        assertTrue(
+            "expected a short date prefix for a past date, got: $label",
+            label.startsWith("Mon 10 Aug, KO "),
+        )
+    }
+
+    @Test
+    fun `formatKickoffLocal still includes the HH-mm time after the prefix`() {
+        val today = LocalDate.of(2026, 8, 12)
+        val kickoffMs = kickoffMsOn(today, 17, 30)
+        val label = FootballMapping.formatKickoffLocal(kickoffMs, today = today)
+        assertEquals("Today, KO 17:30", label)
     }
 }

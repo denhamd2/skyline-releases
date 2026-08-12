@@ -32,7 +32,7 @@ import kotlinx.coroutines.flow.StateFlow
  * (`ScreenshotAppContainer`) that uses this seam.
  */
 @UnstableApi
-open class AppContainer(context: Context) {
+open class AppContainer(private val context: Context) {
 
     private val appContext = context.applicationContext
 
