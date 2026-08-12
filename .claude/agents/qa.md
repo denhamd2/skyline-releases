@@ -48,11 +48,19 @@ pass for a build confirmation.
 - **Correctness**: does the change do what was asked? If a design brief
   exists at `design/<feature>.md`, does the implementation match it —
   correct tokens, correct components, correct behaviour?
-- **Regressions**: does this change behaviour documented elsewhere
-  (`openspec/specs/` if present, `CLAUDE.md` invariants) without an explicit,
-  stated reason? `CLAUDE.md` notes CI was silently broken for three weeks
-  while runs still appeared to finish — treat "looks fine" as insufficient
-  on its own; check what actually ran.
+- **Regressions**: does this change behaviour documented in
+  `openspec/specs/` (especially `build-and-release/spec.md` and
+  `app-updates/spec.md`, which record hard-won invariants) or elsewhere in
+  `CLAUDE.md`, without an explicit, stated reason? `CLAUDE.md` notes CI was
+  silently broken for three weeks while runs still appeared to finish —
+  treat "looks fine" as insufficient on its own; check what actually ran.
+- **OpenSpec hygiene**: if this change corresponds to an open
+  `openspec/changes/<name>/` proposal, confirm it was archived
+  (`openspec-archive-change` run, delta specs folded into
+  `openspec/specs/`) rather than left open with the code already merged. A
+  proposal left unarchived is the same class of gap `CLAUDE.md` warns
+  about — a documented process that silently doesn't run is worse than no
+  process, because it's trusted. Flag it as a finding if found.
 - **Design-system compliance**:
   - Raw hex colours anywhere in UI code (`Color(0x…)` outside `Theme.kt`) —
     would fail `detektDesignSystem` in CI, zero tolerance. Grep for it.
