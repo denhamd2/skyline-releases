@@ -549,12 +549,12 @@ private fun FixtureChannelChip(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(SkySpacing.xs),
         modifier = modifier
             .clip(RoundedCornerShape(SkyRadius.chip))
             .border(1.dp, SkyPalette.Accent, RoundedCornerShape(SkyRadius.chip))
             .scaledClickable(onClick)
-            .padding(horizontal = SkySpacing.s, vertical = 4.dp),
+            .padding(horizontal = SkySpacing.s, vertical = SkySpacing.xs),
     ) {
         Icon(
             Icons.Default.PlayArrow, null,

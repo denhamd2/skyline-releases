@@ -133,4 +133,79 @@ class FootballParsingTest {
         val dto = decode(json)
         assertEquals("Champions League", dto.competition.name)
     }
+
+    @Test
+    fun `blank competition name decodes fine and maps to blank competition`() {
+        val json = """
+            {"id": 1, "utcDate": "2026-08-12T19:00:00Z", "status": "SCHEDULED",
+             "competition": {"id": 1, "name": ""},
+             "homeTeam": {"id": 1, "name": "Team A"},
+             "awayTeam": {"id": 2, "name": "Team B"},
+             "score": {"fullTime": {"home": null, "away": null}}}
+        """.trimIndent()
+        val dto = decode(json)
+        val fixture = FootballMapping.toFixture(dto)!!
+        assertEquals("", fixture.competition)
+    }
+
+    @Test
+    fun `missing competition name defaults to blank rather than crashing`() {
+        val json = """
+            {"id": 1, "utcDate": "2026-08-12T19:00:00Z", "status": "SCHEDULED",
+             "competition": {"id": 1},
+             "homeTeam": {"id": 1, "name": "Team A"},
+             "awayTeam": {"id": 2, "name": "Team B"},
+             "score": {"fullTime": {"home": null, "away": null}}}
+        """.trimIndent()
+        val dto = decode(json)
+        val fixture = FootballMapping.toFixture(dto)!!
+        assertEquals("", fixture.competition)
+    }
+
+    @Test
+    fun `team names with SQL LIKE wildcards pass through the domain model unchanged`() {
+        val json = """
+            {"id": 1, "utcDate": "2026-08-12T19:00:00Z", "status": "SCHEDULED",
+             "competition": {"id": 1, "name": "Test League"},
+             "homeTeam": {"id": 1, "name": "100% United_FC"},
+             "awayTeam": {"id": 2, "name": "St._Mary%s"},
+             "score": {"fullTime": {"home": null, "away": null}}}
+        """.trimIndent()
+        val dto = decode(json)
+        val fixture = FootballMapping.toFixture(dto)!!
+        // No shortName present, so the mapping falls back to the raw name --
+        // confirms FootballMapping.toFixture doesn't escape/mangle these
+        // characters. Any SQL LIKE-escaping happens in GuideDao, not here.
+        assertEquals("100% United_FC", fixture.homeTeam)
+        assertEquals("St._Mary%s", fixture.awayTeam)
+    }
+
+    @Test(expected = Exception::class)
+    fun `non-integer minute value fails to decode FootballMatchDto`() {
+        // QA-flagged behaviour: minute is typed Int? in FootballMatchDto, so
+        // a provider sending "45+2" (a string, not an int) throws during
+        // decode rather than gracefully defaulting -- this is exactly the
+        // shape of malformed element TolerantMatchListSerializer guards
+        // against at the list level (see the response-level test below).
+        decode(matchJson(status = "IN_PLAY").replace("\"minute\": null", "\"minute\": \"45+2\""))
+    }
+
+    @Test
+    fun `one malformed match among several valid ones does not blank the whole response`() {
+        val malformed = matchJson(status = "IN_PLAY")
+            .replace("\"minute\": null", "\"minute\": \"45+2\"")
+        val json = """
+            {"matches": [
+              ${matchJson(status = "SCHEDULED")},
+              $malformed,
+              ${matchJson(status = "FINISHED", homeScore = 1, awayScore = 0)}
+            ]}
+        """.trimIndent()
+        val resp = XtreamJson.decodeFromString(FootballMatchesResponse.serializer(), json)
+        // The malformed element is skipped -- the two valid matches still
+        // decode, rather than the whole `matches` list coming back empty.
+        assertEquals(2, resp.matches.size)
+        val fixtures = FootballMapping.toFixtures(resp.matches)
+        assertEquals(2, fixtures.size)
+    }
 }

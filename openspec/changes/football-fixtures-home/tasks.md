@@ -104,3 +104,19 @@
 - [ ] 9.1 Once implemented and verified, archive this change
       (`openspec-archive-change`) to fold the `football-fixtures` delta
       spec into `openspec/specs/`.
+
+## 10. Open items unresolved as of QA review (2026-08-12)
+
+Neither of these could be checked from this environment (no
+`.github/workflows` directory in this checkout, and no live/authenticated
+football-data.org key available). Do not mark either resolved without
+independent confirmation.
+
+- [ ] 10.1 Confirm `FOOTBALL_DATA_API_KEY` is actually wired as a CI
+      secret/`BuildConfig` field the way `YOUTUBE_API_KEY` is (see design
+      brief open question #2) -- unverifiable without CI workflow access
+      from this checkout.
+- [ ] 10.2 Confirm football-data.org team id 66 really resolves to
+      Manchester United via a live authenticated call (see design brief
+      open question #1 and `FootballRepository.manUtdTeamId`'s doc
+      comment) -- unverifiable without a live API key.
