@@ -1,6 +1,7 @@
 package com.denham.skyline.core
 
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
@@ -35,7 +36,8 @@ sealed interface FixtureStatus {
  *  Android imports, unit-tested on the JVM (see FootballParsingTest). */
 object FootballMapping {
 
-    private val kickoffFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    private val kickoffTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    private val kickoffDateFormatter = DateTimeFormatter.ofPattern("EEE d MMM")
 
     /**
      * Maps one match DTO to a [Fixture], or null when the match cannot be
@@ -83,8 +85,25 @@ object FootballMapping {
             null
         }
 
-    private fun formatKickoffLocal(kickoffMs: Long): String =
-        "KO " + Instant.ofEpochMilli(kickoffMs)
-            .atZone(ZoneId.systemDefault())
-            .format(kickoffFormatter)
+    /**
+     * "Today, KO 17:30" / "Tomorrow, KO 17:30" / "Sat 16 Aug, KO 17:30" --
+     * a bare time ("KO 17:30") is unambiguous for the today's-fixtures rail
+     * (every card there is implicitly today) but misrepresents the "Man Utd
+     * next" spotlight, whose fixture can be several days out. [today]
+     * defaults to the real current date but is exposed for deterministic
+     * unit testing of the Today/Tomorrow/date-fallback boundary.
+     */
+    internal fun formatKickoffLocal(
+        kickoffMs: Long,
+        today: LocalDate = LocalDate.now(ZoneId.systemDefault()),
+    ): String {
+        val zoned = Instant.ofEpochMilli(kickoffMs).atZone(ZoneId.systemDefault())
+        val kickoffDate = zoned.toLocalDate()
+        val dayPrefix = when (kickoffDate) {
+            today -> "Today"
+            today.plusDays(1) -> "Tomorrow"
+            else -> kickoffDate.format(kickoffDateFormatter)
+        }
+        return "$dayPrefix, KO " + zoned.format(kickoffTimeFormatter)
+    }
 }
