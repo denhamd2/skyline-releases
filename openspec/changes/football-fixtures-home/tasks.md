@@ -120,3 +120,19 @@ independent confirmation.
       Manchester United via a live authenticated call (see design brief
       open question #1 and `FootballRepository.manUtdTeamId`'s doc
       comment) -- unverifiable without a live API key.
+
+## 11. Merge-time compile break (found 2026-08-12, post-merge)
+
+PR #4 merged this change to `main` before any agent in this environment
+had actually compiled it (still can't -- AGP doesn't resolve here). CI on
+the merge commit (`7b08560`, run 31609842763) failed:
+`HomeViewModel.footballSection`'s `if/else` returned mismatched flow types
+-- `flowOf(FootballSectionState.Hidden)` inferred `Flow<FootballSectionState.Hidden>`
+instead of `Flow<FootballSectionState>`, so the `else` branch's `emit(Loading)`/
+`emit(Loaded(...))` failed to type-check against it. `main` was red from
+14:59:30 until this was found and fixed.
+
+- [ ] 11.1 Fix pushed on `fix/football-section-compile-error`: pin both
+      branches to the sealed interface explicitly (`flowOf<FootballSectionState>(...)`,
+      `flow<FootballSectionState> { ... }`). Not yet confirmed green by CI --
+      see PR for this branch and task 8.4 above once it lands.
