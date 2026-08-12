@@ -1,0 +1,18 @@
+name: Check football API key presence
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
+    steps:
+      - name: Report presence only (never the value)
+        run: |
+          if [ -n "$FOOTBALL_DATA_API_KEY" ]; then
+            echo "RESULT: FOOTBALL_DATA_API_KEY is SET (non-empty)"
+          else
+            echo "RESULT: FOOTBALL_DATA_API_KEY is NOT SET (empty)"
+          fi
