@@ -20,11 +20,26 @@ brain/component-screenshots/tv_components.png
 
 This is component-level coverage, not per-screen coverage — it answers "do
 these tokens and primitives look right in isolation," not "does the Home
-screen, as actually composed, look right." Per-screen coverage is being
-added; see `openspec/changes/screenshot-regression-testing/` (or, once
-archived, `openspec/specs/screenshot-testing/spec.md`) for what's covered
-and what's deliberately excluded (the player screen — its video surface
-isn't meaningfully renderable under Robolectric).
+screen, as actually composed, look right."
+
+Per-screen coverage exists for one screen so far: `HomeScreen`.
+`skyline-iptv/app/src/test/java/com/denham/skyline/ui/home/HomeScreenshotTest.kt`
+renders the assembled screen (real `HomeViewModel`, seeded in-memory Room DB,
+network-disabled `OkHttpClient` via an `AppContainer` test seam) in the
+David-selected member-chip state, producing:
+
+```
+brain/component-screenshots/home_david.png
+```
+
+It deliberately does not cover the David-only "Football" section (gated on a
+CI-only secret, see the test's own doc comment) or any other screen. Extend
+`HomeScreenshotTest` for another Home state before writing a new harness from
+scratch, and see `brain/integrations/live-screenshot-capture.md` for the
+`AppContainer` seam other screens' tests can reuse. Anything not listed here
+(Movies, Series, Player, TV Browse, and every other Home state) has no
+Roborazzi coverage yet — the player screen specifically is excluded on
+purpose (its video surface isn't meaningfully renderable under Robolectric).
 
 ## What CI does with it
 
