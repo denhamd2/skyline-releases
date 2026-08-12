@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import androidx.core.content.FileProvider
+import com.denham.skyline.core.DownloadProgress
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -114,9 +115,26 @@ class UpdateRepository(
             }
 
             val apkFile = File(cacheDir, "Skyline_$version.apk")
+            val totalBytes = response.body?.contentLength() ?: -1L
             response.body?.byteStream()?.use { input ->
                 apkFile.outputStream().use { output ->
-                    input.copyTo(output)
+                    val buffer = ByteArray(DOWNLOAD_BUFFER_SIZE)
+                    var bytesRead = 0L
+                    var lastReportedPct = 0
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read == -1) break
+                        output.write(buffer, 0, read)
+                        bytesRead += read
+
+                        // Only emit when the percentage actually changes so we
+                        // don't flood the StateFlow on every buffer chunk.
+                        val pct = DownloadProgress.percentOf(bytesRead, totalBytes)
+                        if (pct != null && pct != lastReportedPct) {
+                            lastReportedPct = pct
+                            _state.value = UpdateState.Downloading(pct)
+                        }
+                    }
                 }
             }
 
@@ -160,6 +178,7 @@ class UpdateRepository(
         // assets. Publishing builds here is what makes self-updating possible
         // without shipping a token inside the APK, where it would be
         // extractable by anyone who downloads it.
+        const val DOWNLOAD_BUFFER_SIZE = 8 * 1024
         const val REPO = "denhamd2/skyline-releases"
         const val RELEASE_TAG = "skyline-latest"
         const val APK_NAME = "Skyline.apk"
