@@ -1,6 +1,8 @@
 name: Check football API key presence
 
 on:
+  push:
+    branches: ["chore/check-football-key"]
   workflow_dispatch: {}
 
 jobs:
