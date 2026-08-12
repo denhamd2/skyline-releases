@@ -24,9 +24,15 @@ import kotlinx.coroutines.flow.StateFlow
  * Manual dependency container (single-module personal app — no DI framework
  * to fight during builds). Everything is lazy; the account can change at
  * runtime (sign out / sign in), which invalidates the cached Retrofit API.
+ *
+ * Open, and [createDatabase]/[createOkHttpClient]/[seedAccountForTesting] are
+ * overridable/protected, purely so a Robolectric screenshot test can swap in
+ * an in-memory Room DB and a network-disabled OkHttpClient without touching
+ * the production wiring below. See `HomeScreenshotTest` for the test double
+ * (`InMemoryAppContainer`) that uses this seam.
  */
 @UnstableApi
-class AppContainer(context: Context) {
+open class AppContainer(context: Context) {
 
     private val appContext = context.applicationContext
 
@@ -39,9 +45,13 @@ class AppContainer(context: Context) {
     )
 
     /** Shared OkHttp stack: API calls, player data source, Coil images. */
-    val okHttpClient by lazy { apiClientFactory.okHttpClient() }
+    val okHttpClient by lazy { createOkHttpClient() }
 
-    val db by lazy { SkylineDatabase.build(context) }
+    protected open fun createOkHttpClient() = apiClientFactory.okHttpClient()
+
+    val db by lazy { createDatabase() }
+
+    protected open fun createDatabase(): SkylineDatabase = SkylineDatabase.build(context)
 
     private val _account = MutableStateFlow(loadInitialAccount())
     val account: StateFlow<XtreamAccount?> = _account
@@ -90,6 +100,16 @@ class AppContainer(context: Context) {
 
     fun signIn(account: XtreamAccount) {
         credentialStore.save(account)
+        _account.value = account
+    }
+
+    /**
+     * Test-only hook: sets the in-memory account directly, bypassing
+     * [CredentialStore] (which needs the Android Keystore -- unavailable
+     * under Robolectric, so [signIn] can't be used there). Never called from
+     * a production code path.
+     */
+    protected fun seedAccountForTesting(account: XtreamAccount) {
         _account.value = account
     }
 
