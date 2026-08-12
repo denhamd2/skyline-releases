@@ -34,17 +34,28 @@ image generation rather than asking the user to paste a key into chat.
    GET https://api.kie.ai/api/v1/jobs/recordInfo?taskId=<id>
    Authorization: Bearer $KIE_AI_API_KEY
    ```
-   Poll with a short backoff until the task status is complete; the response
-   carries the resulting image URL(s).
+   Poll with a short backoff, reading `data.state` on each response. Values:
+   `waiting` | `queuing` | `generating` | `success` | `fail`. Keep polling
+   through the first three; stop on `success` or `fail`.
 
-3. **Download** the image URL with `curl -o` into
-   `design/<feature>/mockups/`.
+3. **On `success`**: the image URL(s) are *not* a top-level field — parse
+   `data.resultJson`, which is itself a **JSON string** (parse it a second
+   time), to get `{ "resultUrls": ["https://..."] }`. Download the first
+   URL immediately with `curl -o` into `design/<feature>/mockups/` —
+   **these URLs expire (~24h)**, so never store the raw URL in a design
+   brief as if it were durable; only the downloaded file path.
 
-**Confirm the exact field names against the live docs before relying on
-this** — `https://docs.kie.ai/market/gpt/gpt-image-2-text-to-image` (and
-`.../gpt-image-2-image-to-image` for image-to-image) — this summary was
-assembled from search snippets, not a fetched page, so treat it as a
-starting point, not ground truth.
+4. **On `fail`**: read `data.failCode` / `data.failMsg` and surface them
+   plainly in the brief/handoff rather than silently skipping the mockup.
+
+`callBackUrl` is an optional field on `createTask` for a webhook-based flow
+— not used here, since we poll `recordInfo` directly instead.
+
+Field names above (`state`, `resultJson`, `resultUrls`, `failCode`,
+`failMsg`) are confirmed via kie.ai's own docs and third-party integration
+notes; `docs.kie.ai` itself may be unreachable from a sandboxed session
+(egress-blocked), in which case treat this doc as ground truth rather than
+re-fetching.
 
 ## Prompting
 

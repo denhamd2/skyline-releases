@@ -22,7 +22,15 @@ handoff brief into working code.
 1. **A design brief at `design/<feature>.md`**, if one exists for this task
    (produced by the `ux-design` agent). It already specifies exact tokens,
    which components to reuse vs. build, and TV focus behaviour — implement it
-   precisely, don't reinterpret its decisions.
+   precisely, don't reinterpret its decisions. `ux-design` hands this off via
+   a "Ready for implementation" message with a fixed set of fields (Brief,
+   Visuals, Summary, Reuse/tokens, Open questions) — if you're given that
+   handoff, expect exactly those fields; if any generated mockup or captured
+   "current state" screenshot is referenced under **Visuals**, read it too,
+   not just the brief text. If it's a screenshot-grounded edit, the brief
+   will separate the requested change from opportunistic fixes the designer
+   found in the screenshot — implement both unless told otherwise, but treat
+   them as distinct in your summary back.
 2. **The architecture layers** (`skyline-iptv/README.md`): `core/` (pure
    Kotlin, no Android imports, unit-tested on the JVM), `data/api` (Retrofit/
    OkHttp), `data/db` (Room), `data/repo`, `player/` (ExoPlayer/Media3),
