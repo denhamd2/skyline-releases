@@ -259,6 +259,31 @@ interface GuideDao {
            GROUP BY channelStreamId"""
     )
     suspend fun nowImages(channelIds: List<Int>, nowMs: Long): List<NowImage>
+
+    /**
+     * Channels whose guide carries a programme mentioning both team names,
+     * within a kickoff-relative window (typically kickoff +/- 90 min). Scans
+     * across ALL channels rather than a pre-filtered id list -- unlike
+     * [forChannelsBetween]/[nowImages], which are scoped to
+     * favourites+popular channel ids for Home's tiles, a fixture's carrier
+     * channel could be anywhere in the provider's catalogue (a dedicated
+     * sports channel that never shows up in "popular").
+     *
+     * `%homeTeam%` / `%awayTeam%` are supplied pre-wrapped in `%` wildcards
+     * by the caller so this stays a plain LIKE, matching guide titles like
+     * "Man United v Man City" or "Manchester United - Manchester City".
+     */
+    @Query(
+        """SELECT DISTINCT channelStreamId FROM epg_programmes
+           WHERE stopMs > :fromMs AND startMs < :toMs
+             AND (title LIKE :homeTeamLike OR title LIKE :awayTeamLike)"""
+    )
+    suspend fun channelsForFixture(
+        homeTeamLike: String,
+        awayTeamLike: String,
+        fromMs: Long,
+        toMs: Long,
+    ): List<Int>
 }
 
 /** Projection: the current programme's artwork URL for a channel. */

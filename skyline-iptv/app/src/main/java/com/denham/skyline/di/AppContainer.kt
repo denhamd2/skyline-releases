@@ -119,6 +119,10 @@ class AppContainer(context: Context) {
         com.denham.skyline.data.repo.YouTubeRepository(db, okHttpClient)
     }
 
+    val footballRepository by lazy {
+        com.denham.skyline.data.repo.FootballRepository(okHttpClient)
+    }
+
     val updateRepository by lazy {
         UpdateRepository(appContext, BuildConfig.VERSION_NAME, okHttpClient)
     }

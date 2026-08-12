@@ -43,6 +43,14 @@ android {
         // extractable, and the exposure should be capped at quota use.
         val youtubeApiKey = System.getenv("YOUTUBE_API_KEY").orEmpty()
         buildConfigField("String", "YOUTUBE_API_KEY", "\"$youtubeApiKey\"")
+
+        // Injected by CI from the FOOTBALL_DATA_API_KEY secret; empty in local
+        // builds. Powers the David-only "Football" section on Home
+        // (football-data.org v4). Restricted to that one API, same exposure
+        // model as the YouTube key above -- an absent key degrades to the
+        // section simply not rendering, never an error card.
+        val footballDataApiKey = System.getenv("FOOTBALL_DATA_API_KEY").orEmpty()
+        buildConfigField("String", "FOOTBALL_DATA_API_KEY", "\"$footballDataApiKey\"")
     }
 
     signingConfigs {

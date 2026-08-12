@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.denham.skyline.core.Fixture
 import com.denham.skyline.data.db.ChannelEntity
 import com.denham.skyline.data.db.ContentType
 import com.denham.skyline.data.db.EpgNowNextEntity
@@ -52,6 +53,7 @@ import com.denham.skyline.data.prefs.LastPlayed
 import com.denham.skyline.BuildConfig
 import com.denham.skyline.ui.components.ArtworkImage
 import com.denham.skyline.ui.components.ChannelCard
+import com.denham.skyline.ui.components.FixtureCard
 import com.denham.skyline.ui.components.enterReveal
 import com.denham.skyline.ui.components.revealDelay
 import com.denham.skyline.ui.components.LiveNowRow
@@ -59,11 +61,14 @@ import com.denham.skyline.ui.components.PillButton
 import com.denham.skyline.ui.components.PosterCard
 import com.denham.skyline.ui.components.Rail
 import com.denham.skyline.ui.components.SectionHeader
+import com.denham.skyline.ui.components.ShimmerBox
 import com.denham.skyline.ui.components.ShimmerRail
 import com.denham.skyline.ui.components.SkylineWordmark
 import com.denham.skyline.ui.components.YouTubeCard
 import com.denham.skyline.ui.components.scaledClickable
 import com.denham.skyline.ui.theme.SkyPalette
+import com.denham.skyline.ui.theme.SkyRadius
+import com.denham.skyline.ui.theme.SkySpacing
 import com.denham.skyline.ui.update.UpdatePrompt
 import com.denham.skyline.ui.update.UpdateViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -106,6 +111,21 @@ private val familyKeywordDefaults = mapOf(
         "junior", "cbeebies", "boomerang", "toon",
     ),
 )
+
+/**
+ * Loading/hidden/loaded wrapper for the David-only "Football" section.
+ * [Hidden] covers both "not David" and "no API key configured" -- the
+ * design brief's graceful-degradation contract renders nothing, not an
+ * error, in either case, so callers don't need to distinguish them.
+ */
+sealed interface FootballSectionState {
+    data object Hidden : FootballSectionState
+    data object Loading : FootballSectionState
+    data class Loaded(
+        val manUtdNext: Fixture?,
+        val todaysFixtures: List<Fixture>,
+    ) : FootballSectionState
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(private val container: AppContainer) : ViewModel() {
@@ -278,6 +298,61 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
                 }
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /**
+     * David-only "Football" section: Man Utd's next fixture + today's
+     * fixtures across football-data.org's covered competitions. Hidden for
+     * every other member/no member, and hidden (not an error state) when
+     * `FOOTBALL_DATA_API_KEY` is blank -- [FootballRepository] itself never
+     * throws on a bad key/response, and this adds a defensive
+     * [runCatching] layer on top, matching the rest of this ViewModel's
+     * "a fetch failure must never blank the whole screen" pattern.
+     */
+    val footballSection: StateFlow<FootballSectionState> = _selectedFamilyMember
+        .flatMapLatest { member ->
+            val apiKey = BuildConfig.FOOTBALL_DATA_API_KEY
+            if (member != "David" || apiKey.isBlank()) {
+                flowOf(FootballSectionState.Hidden)
+            } else {
+                kotlinx.coroutines.flow.flow {
+                    emit(FootballSectionState.Loading)
+                    val manUtdNext = runCatching { container.footballRepository.nextManUtdFixture(apiKey) }
+                        .onFailure { android.util.Log.e("HomeViewModel", "Man Utd fixture fetch failed", it) }
+                        .getOrNull()
+                    val todaysFixtures = runCatching { container.footballRepository.todaysFixtures(apiKey) }
+                        .onFailure { android.util.Log.e("HomeViewModel", "Today's fixtures fetch failed", it) }
+                        .getOrDefault(emptyList())
+                    emit(FootballSectionState.Loaded(manUtdNext, todaysFixtures))
+                }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), FootballSectionState.Hidden)
+
+    /**
+     * EPG channels matched per fixture (by database id), for the spotlight
+     * card and every rail card. Looked up independently per fixture so one
+     * failing lookup doesn't blank the others.
+     */
+    val fixtureChannels: StateFlow<Map<Long, List<ChannelEntity>>> = footballSection
+        .flatMapLatest { state ->
+            val fixtures = when (state) {
+                is FootballSectionState.Loaded ->
+                    (listOfNotNull(state.manUtdNext) + state.todaysFixtures).distinctBy { it.id }
+                else -> emptyList()
+            }
+            if (fixtures.isEmpty()) {
+                flowOf(emptyMap())
+            } else {
+                kotlinx.coroutines.flow.flow {
+                    val result = mutableMapOf<Long, List<ChannelEntity>>()
+                    for (fixture in fixtures) {
+                        result[fixture.id] = runCatching { channelsForFixture(fixture) }.getOrDefault(emptyList())
+                    }
+                    emit(result)
+                }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     init {
         viewModelScope.launch { container.contentRepository.syncAll() }
@@ -464,6 +539,26 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
         return null
     }
 
+    /**
+     * EPG channels carrying a fixture: title `LIKE` match against either
+     * team name, windowed to kickoff +/- 90 min, resolved to real channels
+     * via `ChannelDao.byIds` -- never a fabricated channel. A new
+     * `GuideDao` query (not the favourites+popular-scoped ones this
+     * ViewModel otherwise uses) because a fixture's carrier channel can be
+     * any sports channel in the provider's catalogue, not just what's
+     * already on Home.
+     */
+    private suspend fun channelsForFixture(fixture: Fixture): List<ChannelEntity> {
+        val windowMs = 90 * 60 * 1000L
+        val ids = container.db.guideDao().channelsForFixture(
+            homeTeamLike = "%${fixture.homeTeam}%",
+            awayTeamLike = "%${fixture.awayTeam}%",
+            fromMs = fixture.kickoffMs - windowMs,
+            toMs = fixture.kickoffMs + windowMs,
+        )
+        return if (ids.isEmpty()) emptyList() else container.db.channelDao().byIds(ids)
+    }
+
     private fun formatDate(timestampMs: Long): String {
         return try {
             val instant = java.time.Instant.ofEpochMilli(timestampMs)
@@ -504,6 +599,8 @@ fun HomeScreen(
     val selectedMember by viewModel.selectedFamilyMember.collectAsState()
     val youtubeVideos by viewModel.youtubeVideos.collectAsState()
     val pinned by viewModel.pinnedChannels.collectAsState()
+    val footballSection by viewModel.footballSection.collectAsState()
+    val fixtureChannels by viewModel.fixtureChannels.collectAsState()
 
     // Check for updates on first load. Silent: this is automatic, so a failure
     // should not interrupt the user with a dialog before they've done anything.
@@ -690,6 +787,82 @@ fun HomeScreen(
                             subtitle = epg[ch.streamId]?.nowTitle,
                             onClick = { onPlayChannel(ch) },
                         )
+                    }
+                }
+            }
+        }
+
+        // David-only "Football" section: Man Utd next-fixture spotlight +
+        // today's-fixtures rail, directly under his pinned channels (which
+        // still outrank it -- an explicit pin beats anything automatic) and
+        // ahead of YouTube/category rails, for the same "time-decaying,
+        // happening today" reasoning that puts Live Now near the top of the
+        // default page. Scoped to "David" specifically (his personal sports
+        // interest), not selectedMember != null.
+        val showFootball = selectedMember == "David" && when (val football = footballSection) {
+            FootballSectionState.Hidden -> false
+            FootballSectionState.Loading -> true
+            is FootballSectionState.Loaded ->
+                football.manUtdNext != null || football.todaysFixtures.isNotEmpty()
+        }
+        if (showFootball) {
+            item {
+                Column(Modifier.enterReveal(revealDelay(0))) {
+                    SectionHeader("Football")
+                    when (val football = footballSection) {
+                        is FootballSectionState.Loading -> {
+                            ShimmerBox(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = SkySpacing.gutter)
+                                    .height(120.dp)
+                                    .clip(RoundedCornerShape(SkyRadius.card)),
+                            )
+                            Spacer(Modifier.height(SkySpacing.s))
+                            ShimmerRail()
+                        }
+                        is FootballSectionState.Loaded -> {
+                            football.manUtdNext?.let { fixture ->
+                                Text(
+                                    "Man Utd next",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = SkyPalette.TextSecondary,
+                                    modifier = Modifier.padding(
+                                        horizontal = SkySpacing.gutter,
+                                        vertical = SkySpacing.s,
+                                    ),
+                                )
+                                FixtureCard(
+                                    competition = fixture.competition,
+                                    homeTeam = fixture.homeTeam,
+                                    awayTeam = fixture.awayTeam,
+                                    homeCrestUrl = fixture.homeCrestUrl,
+                                    awayCrestUrl = fixture.awayCrestUrl,
+                                    status = fixture.status,
+                                    channels = fixtureChannels[fixture.id] ?: emptyList(),
+                                    onPlayChannel = onPlayChannel,
+                                    width = null,
+                                    modifier = Modifier
+                                        .padding(horizontal = SkySpacing.gutter)
+                                        .fillMaxWidth(),
+                                )
+                            }
+                            if (football.todaysFixtures.isNotEmpty()) {
+                                Rail("", football.todaysFixtures, key = { it.id }) { fixture ->
+                                    FixtureCard(
+                                        competition = fixture.competition,
+                                        homeTeam = fixture.homeTeam,
+                                        awayTeam = fixture.awayTeam,
+                                        homeCrestUrl = fixture.homeCrestUrl,
+                                        awayCrestUrl = fixture.awayCrestUrl,
+                                        status = fixture.status,
+                                        channels = fixtureChannels[fixture.id] ?: emptyList(),
+                                        onPlayChannel = onPlayChannel,
+                                    )
+                                }
+                            }
+                        }
+                        FootballSectionState.Hidden -> Unit
                     }
                 }
             }
