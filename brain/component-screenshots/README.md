@@ -14,8 +14,8 @@ renders a gallery of design-system components (buttons, badges, cards) at a
 phone qualifier and a TV qualifier, producing:
 
 ```
-docs/skyline-screenshots/phone_components.png
-docs/skyline-screenshots/tv_components.png
+brain/component-screenshots/phone_components.png
+brain/component-screenshots/tv_components.png
 ```
 
 This is component-level coverage, not per-screen coverage — it answers "do
@@ -45,8 +45,8 @@ regression had ever once failed a build.
 ## Reviewing a change
 
 ```bash
-git diff --stat -- docs/skyline-screenshots/*.png   # which images changed
-open docs/skyline-screenshots/phone_components.png  # macOS; view directly
+git diff --stat -- brain/component-screenshots/*.png   # which images changed
+open brain/component-screenshots/phone_components.png  # macOS; view directly
 ```
 
 A changed PNG in a diff is expected only when the commit intentionally
@@ -58,6 +58,6 @@ run failed and the PNGs weren't updated.
 ## See also
 
 - CI config: `.github/workflows/build-skyline-apk.yml`
-- Design system: `docs/SKY_DESIGN_SYSTEM.md`
+- Design system: `brain/design-system/SKY_DESIGN_SYSTEM.md`
 - Design-system enforcement (a different, separately-gated mechanism):
-  `docs/DESIGN_SYSTEM_ENFORCEMENT.md`
+  `brain/design-system/DESIGN_SYSTEM_ENFORCEMENT.md`

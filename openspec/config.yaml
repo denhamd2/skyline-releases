@@ -18,7 +18,7 @@ context: |
   reads without credentials. Nothing secret may be compiled into the APK —
   it is publicly downloadable and trivially unpacked.
 
-  Design: `docs/SKY_DESIGN_SYSTEM.md` and `docs/COMPONENT_LIBRARY.md` are
+  Design: `brain/design-system/SKY_DESIGN_SYSTEM.md` and `brain/design-system/COMPONENT_LIBRARY.md` are
   authoritative. Colours/spacing/radii come from `ui/theme/Theme.kt`
   (SkyPalette, SkySpacing, SkyRadius) — never hardcode hex or off-grid dp.
 

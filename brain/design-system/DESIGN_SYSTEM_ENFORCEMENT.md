@@ -158,7 +158,7 @@ opened.
 ## Not implemented: visual regression testing
 
 CI runs `./gradlew recordRoborazziDebug`, which **records** screenshots and
-commits the PNGs to `docs/skyline-screenshots/`. It does not compare them
+commits the PNGs to `brain/component-screenshots/`. It does not compare them
 against a baseline, and no threshold fails a build. Visual drift is caught by
 looking at the images, if someone looks.
 
@@ -169,9 +169,9 @@ baseline. Until that exists, do not describe screenshots as a regression gate.
 
 ## Reference
 
-- Tokens and patterns: `docs/SKY_DESIGN_SYSTEM.md`
-- Reusable components: `docs/COMPONENT_LIBRARY.md`
-- Principles and research: `docs/sky-design-language.md`
+- Tokens and patterns: `brain/design-system/SKY_DESIGN_SYSTEM.md`
+- Reusable components: `brain/design-system/COMPONENT_LIBRARY.md`
+- Principles and research: `brain/design-system/sky-design-language.md`
 - Working agreement for UI code: `.claude/rules/design-system.md`
 
 ## Common violations
