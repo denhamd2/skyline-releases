@@ -36,24 +36,24 @@ When these disagree, higher wins:
 1. **`skyline-iptv/app/src/main/java/com/denham/skyline/ui/theme/Theme.kt`** —
    the live, compiled tokens. Code is truth; if a doc below contradicts it,
    the doc is stale, not the code.
-2. **`brain/design-system/SKY_DESIGN_SYSTEM.md`** and **`brain/design-system/COMPONENT_LIBRARY.md`** — the
+2. **`docs/SKY_DESIGN_SYSTEM.md`** and **`docs/COMPONENT_LIBRARY.md`** — the
    full design system and concrete component patterns (cards, rails,
    buttons, badges, TV focus, a "quick start: building a new screen"
    section, and a design-system compliance checklist).
 3. **`.claude/rules/design-system.md`** — auto-loads whenever you touch
    `skyline-iptv/**/*.kt`; treat it as the quick-reference summary of #1–2.
-4. **`brain/design-system/DESIGN_SYSTEM_ENFORCEMENT.md`** — tells you exactly what CI
+4. **`docs/DESIGN_SYSTEM_ENFORCEMENT.md`** — tells you exactly what CI
    actually checks vs. what's only reviewed by eye. Don't claim something is
    "enforced" unless this doc says so.
-5. **`brain/reference-designs/mobile/mobile-screens.png`** and
-   **`brain/reference-designs/desktop/desktop-screens.png`** — baseline full-screen
-   mockups. Per `brain/reference-designs/README.md`, these are a **baseline, not an
+5. **`reference-designs/mobile/mobile-screens.png`** and
+   **`reference-designs/desktop/desktop-screens.png`** — baseline full-screen
+   mockups. Per `reference-designs/README.md`, these are a **baseline, not an
    exact spec** — nav and sections have shifted since they were made. Note
    divergences explicitly; don't silently force a match.
-6. **`brain/component-screenshots/phone_components.png`** and
+6. **`docs/skyline-screenshots/phone_components.png`** and
    **`tv_components.png`** — component-level reference shots, narrower scope
    than the full-screen mockups above.
-7. **`brain/design-system/sky-design-language.md`** — research notes on Sky's *actual*
+7. **`docs/sky-design-language.md`** — research notes on Sky's *actual*
    published design system (Sky UI / Sky Toolkit), with an explicit
    principle-by-principle mapping of what Skyline currently implements vs.
    what it hasn't adopted yet (e.g. staggered rail reveal, TV focus-scale,
@@ -152,7 +152,7 @@ Always reference via `MaterialTheme.typography.*` — never a hardcoded
 Apply this on top of the Skyline-specific rules above, especially where the
 design system is silent:
 
-- **Accessibility & contrast**: `brain/design-system/SKY_DESIGN_SYSTEM.md` has a WCAG AAA
+- **Accessibility & contrast**: `docs/SKY_DESIGN_SYSTEM.md` has a WCAG AAA
   contrast section — check text-on-surface combinations against it,
   especially `TextMuted`/`TextSecondary` on `Surface`/`SurfaceElevated`.
 - **Consistency over novelty**: a new pattern needs a reason; reusing an
@@ -169,7 +169,7 @@ Every design task produces a visual mockup via kie.ai's GPT Image 2 API
 alongside the text brief — not just brand-new screens. Which of the two
 kie.ai modes you use depends on the path below. Full workflow,
 request/response shape, auth, and prompting guidance:
-`brain/integrations/kie-ai-image-generation.md`.
+`docs/integrations/kie-ai-image-generation.md`.
 
 1. Check `$KIE_AI_API_KEY` is set. If it isn't, say so plainly in the brief
    and handoff, and skip image generation — don't block the rest of the
@@ -201,14 +201,14 @@ section, an updated component, a restyle, a bug-driven UI fix — don't
 design from the doc hierarchy alone. Capture a live screenshot of the
 screen as it renders **today** first, and use it as a direct input to both
 the design reasoning and the kie.ai image-to-image mockup above. Full
-workflow: `brain/integrations/live-screenshot-capture.md`. In short:
+workflow: `docs/integrations/live-screenshot-capture.md`. In short:
 
 1. Find or write a scoped Roborazzi test for the target screen and run it
    (`./gradlew testDebugUnitTest --tests "*<ScreenName>*"`).
 2. Locate the resulting PNG and save/reference it as
    `design/<feature>/current-state/<screen>.png`.
 3. Read it as ground truth for what's actually on screen — it may have
-   drifted from `brain/reference-designs/` (already flagged there as a
+   drifted from `reference-designs/` (already flagged there as a
    stale baseline, not an exact spec).
 4. If the screenshot shows something wrong (a design-system violation,
    off-grid spacing, a broken layout, poor contrast), don't just replicate
@@ -231,8 +231,8 @@ workflow: `brain/integrations/live-screenshot-capture.md`. In short:
    references only; modification → live screenshot first) — but either way,
    a kie.ai mockup gets generated (text-to-image for new, image-to-image
    from the screenshot for an edit).
-2. **Check baselines**: look at `brain/reference-designs/` and
-   `brain/component-screenshots/` for anything relevant. Call out explicitly
+2. **Check baselines**: look at `reference-designs/` and
+   `docs/skyline-screenshots/` for anything relevant. Call out explicitly
    where the current app has diverged from the baseline (nav items, section
    ordering) rather than silently forcing a match or silently ignoring it.
 3. **Check for reuse**: search `ui/components/` before proposing or writing

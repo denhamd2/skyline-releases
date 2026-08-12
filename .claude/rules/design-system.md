@@ -5,8 +5,8 @@ paths:
 
 # Sky design system
 
-Applies to all Skyline UI code. Full reference: `brain/design-system/SKY_DESIGN_SYSTEM.md`
-and `brain/design-system/COMPONENT_LIBRARY.md`. Read the relevant section before adding or
+Applies to all Skyline UI code. Full reference: `docs/SKY_DESIGN_SYSTEM.md`
+and `docs/COMPONENT_LIBRARY.md`. Read the relevant section before adding or
 restyling a component.
 
 **Colour is machine-enforced.** `./gradlew detektDesignSystem` fails on any
@@ -14,7 +14,7 @@ restyling a component.
 token to use. It runs in CI after the APK publishes, so a violation marks the
 run red without withholding a build. Spacing, typography, motion and
 component reuse are **not** machine-checked — those rules were removed as
-unusable and are reviewed by eye. See `brain/design-system/DESIGN_SYSTEM_ENFORCEMENT.md`.
+unusable and are reviewed by eye. See `docs/DESIGN_SYSTEM_ENFORCEMENT.md`.
 
 ## Tokens are the source of truth
 
@@ -56,5 +56,5 @@ SkyPaletteUsage rule in skyline-iptv/detekt-rules/ runs on every push as the
 detektDesignSystem task at zero tolerance, and names the token to use. Spacing,
 typography, motion and component reuse are NOT machine-checked -- those rules
 were written against a detekt API that does not exist and were removed, so for
-them this file and brain/design-system/SKY_DESIGN_SYSTEM.md remain the only guardrail. See
-brain/design-system/DESIGN_SYSTEM_ENFORCEMENT.md. -->
+them this file and docs/SKY_DESIGN_SYSTEM.md remain the only guardrail. See
+docs/DESIGN_SYSTEM_ENFORCEMENT.md. -->

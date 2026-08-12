@@ -20,7 +20,7 @@ potentially-stale doc.
    that already renders the target screen (not just its components).
    `HomeScreen` has a baseline: `HomeScreenshotTest.kt` (next to `HomeScreen.kt`
    in `ui/home/`) renders the assembled screen in the David-selected
-   member-chip state to `brain/component-screenshots/home_david.png`. If the
+   member-chip state to `docs/skyline-screenshots/home_david.png`. If the
    edit is to Home and the David tab's shape (its rails, its pinned-channel
    row, its layout) is close enough to what's needed, **extend that test's
    sample data or add a second `@Test` in the same class** rather than
@@ -40,7 +40,7 @@ potentially-stale doc.
      into gitignored `build/` and silently produced no committed golden;
      the current component tests write to a `../../docs/skyline-screenshots/`
      relative path while the committed PNGs actually live in
-     `brain/component-screenshots/`). Resolve the real output path from the
+     `docs/skyline-screenshots/`). Resolve the real output path from the
      test file itself, don't guess.
    - Use realistic sample content (existing rows/cards with real-looking
      titles), not empty/placeholder state, so the render is representative.
@@ -55,7 +55,7 @@ potentially-stale doc.
 ## Using the result
 
 - Treat the screenshot as ground truth for "what's actually there right
-  now," which may have drifted from `brain/reference-designs/` (already
+  now," which may have drifted from `reference-designs/` (already
   documented there as a stale baseline, not an exact spec).
 - If the screenshot shows something wrong — a design-system violation
   (raw hex, off-grid spacing), a broken or awkward layout, poor contrast —

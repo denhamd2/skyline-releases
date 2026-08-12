@@ -7,7 +7,7 @@ plan — the sections below (originally written pre-implementation) are kept
 for record but the verdict is: **implementation matches spec closely, no
 implementation-blocking defects found, two recommended follow-ups below.**
 
-**Grounding.** Checked `brain/component-screenshots/` for a live `HomeScreen`
+**Grounding.** Checked `docs/skyline-screenshots/` for a live `HomeScreen`
 screenshot first, per the live-screenshot-capture workflow — only
 `phone_components.png`/`tv_components.png` exist (component gallery, not the
 assembled screen); no `home_david.png` or similar has landed yet from the
@@ -152,7 +152,7 @@ Compose source plus the reference baselines, per below.
 
 ## Grounding: current-state capture attempted, fell back to source reading
 
-Per `brain/integrations/live-screenshot-capture.md`, I looked for existing
+Per `docs/integrations/live-screenshot-capture.md`, I looked for existing
 Roborazzi coverage of `HomeScreen` itself (not just component swatches) —
 there is none; `skyline-iptv/app/src/test/java/com/denham/skyline/ui/ScreenshotTests.kt`
 only renders a component gallery (`PhoneComponentScreenshots`,
@@ -181,10 +181,10 @@ LazyColumn
  └─ bottom spacer
 ```
 
-No drift from `brain/reference-designs/` worth flagging here — the
+No drift from `reference-designs/` worth flagging here — the
 mocks predate the member-selector/pinned-rail/YouTube pattern entirely, so
 there's nothing in the baseline to compare a sports-fixtures section against.
-`brain/component-screenshots/phone_components.png` is useful only at the
+`docs/skyline-screenshots/phone_components.png` is useful only at the
 component level (it doesn't show `LiveNowRow` with a score or channel
 chips, since those don't exist yet).
 
@@ -518,7 +518,7 @@ and component references throughout this brief.
   pre-implementation brief, kept for record).
 - **Visuals**: skipped: no `home_david.png`/equivalent live screenshot has
   landed yet from the parallel Roborazzi effort (checked
-  `brain/component-screenshots/` — only the pre-existing component-gallery
+  `docs/skyline-screenshots/` — only the pre-existing component-gallery
   screenshots exist). Fell back to reading `HomeScreen.kt`,
   `ui/components/Components.kt`, `data/repo/FootballRepository.kt`, and
   `core/FootballMapping.kt`/`FootballModels.kt` directly, same fallback path

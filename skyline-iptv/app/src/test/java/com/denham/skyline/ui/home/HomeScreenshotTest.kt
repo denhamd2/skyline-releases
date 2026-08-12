@@ -135,15 +135,14 @@ class HomeScreenshotTest {
 
         // Resolved relative to the `app` module directory (Gradle's default
         // test-task working directory), matching where
-        // `brain/component-screenshots/*.png` already live -- verified
-        // against Roborazzi's default `relativePathFromCurrentDirectory`
-        // file-path strategy (no `roborazzi.record.filePathStrategy` /
-        // `outputDir` override is set in this project), not assumed. Do NOT
-        // copy the `../../docs/skyline-screenshots/...` path used by
-        // `PhoneComponentScreenshots`/`TvComponentScreenshots` in
-        // `ScreenshotTests.kt` -- that one resolves to a directory that does
-        // not hold the committed goldens; see the comment there.
-        compose.onRoot().captureRoboImage("../../brain/component-screenshots/home_david.png")
+        // `docs/skyline-screenshots/*.png` already live -- verified against
+        // Roborazzi's default `relativePathFromCurrentDirectory` file-path
+        // strategy (no `roborazzi.record.filePathStrategy` / `outputDir`
+        // override is set in this project). Same `../../docs/skyline-
+        // screenshots/...` path as `PhoneComponentScreenshots`/
+        // `TvComponentScreenshots` in `ScreenshotTests.kt` -- both resolve
+        // from the same module working directory.
+        compose.onRoot().captureRoboImage("../../docs/skyline-screenshots/home_david.png")
     }
 }
 

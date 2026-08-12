@@ -3,7 +3,7 @@
 How `ux-design` generates visual mockups via kie.ai's GPT Image 2 API — for
 **every** design task, new screens and edits to existing ones alike. Two
 modes: text-to-image (new screens) and image-to-image (edits, grounded in a
-captured screenshot — see `brain/integrations/live-screenshot-capture.md`).
+captured screenshot — see `docs/integrations/live-screenshot-capture.md`).
 
 ## Auth
 
@@ -93,8 +93,8 @@ Skyline rather than generic Material:
   Kotlin token names.
 - State phone vs. TV explicitly — 10-foot D-pad layouts need different
   framing than one-handed phone screens.
-- Reference the relevant baseline in `brain/reference-designs/` or
-  `brain/component-screenshots/` by description if one exists, and note any
+- Reference the relevant baseline in `reference-designs/` or
+  `docs/skyline-screenshots/` by description if one exists, and note any
   known divergence (nav/section changes since the baseline was made).
 
 ## Scope
