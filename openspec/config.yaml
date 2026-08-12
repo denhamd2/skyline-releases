@@ -1,0 +1,36 @@
+schema: spec-driven
+
+context: |
+  ## Skyline
+
+  Skyline — a Sky-Go-styled IPTV client for Android phone and Android TV,
+  built for one family. Source lives in `skyline-iptv/`.
+
+  Tech stack: Kotlin, Jetpack Compose (Material 3), Room (+FTS4), Media3/
+  ExoPlayer, OkHttp/Retrofit, kotlinx.serialization, DataStore, Coil.
+  Manual DI via `di/AppContainer.kt` — no DI framework.
+
+  Backend is an Xtream Codes panel: live channels, VOD, series and XMLTV
+  guide data are synced into Room and served from there.
+
+  Distribution: GitHub Actions builds a debug APK on every push and publishes
+  it to this repository's `skyline-latest` release, which the in-app updater
+  reads without credentials. Nothing secret may be compiled into the APK —
+  it is publicly downloadable and trivially unpacked.
+
+  Design: `docs/SKY_DESIGN_SYSTEM.md` and `docs/COMPONENT_LIBRARY.md` are
+  authoritative. Colours/spacing/radii come from `ui/theme/Theme.kt`
+  (SkyPalette, SkySpacing, SkyRadius) — never hardcode hex or off-grid dp.
+
+  Verification: there is no emulator or device in the agent environment, and
+  the Android Gradle Plugin cannot be resolved there, so the code CANNOT be
+  compiled locally. CI is the only compiler. Never report work as done off
+  the back of a push alone — wait for the run and confirm it is green.
+
+rules:
+  proposal:
+    - "State explicitly what cannot be verified in the agent environment (device behaviour, provider data, anything needing a real build)."
+  tasks:
+    - "Include a task to confirm the CI run is green; a push is not done."
+  specs:
+    - "Record invariants that were learned from a production failure, and say which failure, so they are not silently regressed later."
