@@ -114,9 +114,14 @@
 
 ## 9. Archive
 
-- [ ] 9.1 Once implemented and verified, archive this change
+- [x] 9.1 Once implemented and verified, archive this change
       (`openspec-archive-change`) to fold the `football-fixtures` delta
       spec into `openspec/specs/`.
+      *Archived 2026-08-13 as-is (overdue). Task 10.2 below remains
+      unverified and is carried forward as a known risk, not resolved by
+      this archive -- see the follow-on `football-round-fixtures-rail`
+      change, which rescopes the fixtures rail but does not touch
+      `manUtdTeamId`.*
 
 ## 10. Open items unresolved as of QA review (2026-08-12)
 
@@ -137,6 +142,11 @@ independent confirmation.
       Manchester United via a live authenticated call (see design brief
       open question #1 and `FootballRepository.manUtdTeamId`'s doc
       comment) -- unverifiable without a live API key.
+      *KNOWN RISK, carried forward unresolved at archive time (2026-08-13):
+      not something the `football-fixtures-home` change itself needs to
+      resolve further, and out of scope for `football-round-fixtures-rail`
+      (which only changes the fixtures-rail data source, not the Man Utd
+      spotlight). Still needs a live authenticated call to confirm.*
 
 ## 11. Merge-time compile break (found 2026-08-12, post-merge)
 

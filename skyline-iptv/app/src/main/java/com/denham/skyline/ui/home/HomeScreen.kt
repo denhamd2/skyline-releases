@@ -123,7 +123,7 @@ sealed interface FootballSectionState {
     data object Loading : FootballSectionState
     data class Loaded(
         val manUtdNext: Fixture?,
-        val todaysFixtures: List<Fixture>,
+        val roundFixtures: List<Fixture>,
     ) : FootballSectionState
 }
 
@@ -300,13 +300,13 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     /**
-     * David-only "Football" section: Man Utd's next fixture + today's
-     * fixtures across football-data.org's covered competitions. Hidden for
-     * every other member/no member, and hidden (not an error state) when
-     * `FOOTBALL_DATA_API_KEY` is blank -- [FootballRepository] itself never
-     * throws on a bad key/response, and this adds a defensive
-     * [runCatching] layer on top, matching the rest of this ViewModel's
-     * "a fetch failure must never blank the whole screen" pattern.
+     * David-only "Football" section: Man Utd's next fixture + the upcoming
+     * round of Premier League fixtures. Hidden for every other member/no
+     * member, and hidden (not an error state) when `FOOTBALL_DATA_API_KEY`
+     * is blank -- [FootballRepository] itself never throws on a bad key/
+     * response, and this adds a defensive [runCatching] layer on top,
+     * matching the rest of this ViewModel's "a fetch failure must never
+     * blank the whole screen" pattern.
      */
     val footballSection: StateFlow<FootballSectionState> = _selectedFamilyMember
         .flatMapLatest { member ->
@@ -319,10 +319,10 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
                     val manUtdNext = runCatching { container.footballRepository.nextManUtdFixture(apiKey) }
                         .onFailure { android.util.Log.e("HomeViewModel", "Man Utd fixture fetch failed", it) }
                         .getOrNull()
-                    val todaysFixtures = runCatching { container.footballRepository.todaysFixtures(apiKey) }
-                        .onFailure { android.util.Log.e("HomeViewModel", "Today's fixtures fetch failed", it) }
+                    val roundFixtures = runCatching { container.footballRepository.upcomingPremierLeagueRound(apiKey) }
+                        .onFailure { android.util.Log.e("HomeViewModel", "Upcoming PL round fetch failed", it) }
                         .getOrDefault(emptyList())
-                    emit(FootballSectionState.Loaded(manUtdNext, todaysFixtures))
+                    emit(FootballSectionState.Loaded(manUtdNext, roundFixtures))
                 }
             }
         }
@@ -337,7 +337,7 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
         .flatMapLatest { state ->
             val fixtures = when (state) {
                 is FootballSectionState.Loaded ->
-                    (listOfNotNull(state.manUtdNext) + state.todaysFixtures).distinctBy { it.id }
+                    (listOfNotNull(state.manUtdNext) + state.roundFixtures).distinctBy { it.id }
                 else -> emptyList()
             }
             if (fixtures.isEmpty()) {
@@ -793,17 +793,18 @@ fun HomeScreen(
         }
 
         // David-only "Football" section: Man Utd next-fixture spotlight +
-        // today's-fixtures rail, directly under his pinned channels (which
-        // still outrank it -- an explicit pin beats anything automatic) and
-        // ahead of YouTube/category rails, for the same "time-decaying,
-        // happening today" reasoning that puts Live Now near the top of the
-        // default page. Scoped to "David" specifically (his personal sports
-        // interest), not selectedMember != null.
+        // upcoming-Premier-League-round rail, directly under his pinned
+        // channels (which still outrank it -- an explicit pin beats
+        // anything automatic) and ahead of YouTube/category rails, for the
+        // same "time-decaying, happening today" reasoning that puts Live
+        // Now near the top of the default page. Scoped to "David"
+        // specifically (his personal sports interest), not
+        // selectedMember != null.
         val showFootball = selectedMember == "David" && when (val football = footballSection) {
             FootballSectionState.Hidden -> false
             FootballSectionState.Loading -> true
             is FootballSectionState.Loaded ->
-                football.manUtdNext != null || football.todaysFixtures.isNotEmpty()
+                football.manUtdNext != null || football.roundFixtures.isNotEmpty()
         }
         if (showFootball) {
             item {
@@ -847,8 +848,8 @@ fun HomeScreen(
                                         .fillMaxWidth(),
                                 )
                             }
-                            if (football.todaysFixtures.isNotEmpty()) {
-                                Rail("", football.todaysFixtures, key = { it.id }) { fixture ->
+                            if (football.roundFixtures.isNotEmpty()) {
+                                Rail("", football.roundFixtures, key = { it.id }) { fixture ->
                                     FixtureCard(
                                         competition = fixture.competition,
                                         homeTeam = fixture.homeTeam,

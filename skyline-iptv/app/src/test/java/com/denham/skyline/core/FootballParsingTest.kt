@@ -277,4 +277,87 @@ class FootballParsingTest {
         val label = FootballMapping.formatKickoffLocal(kickoffMs, today = today)
         assertEquals("Today, KO 17:30", label)
     }
+
+    // -- matchday decoding (football-round-fixtures-rail) ----------------
+    //
+    // FootballMatchDto.matchday backs FootballRepository.upcomingPremier
+    // LeagueRound's round selection -- present on every matchday-filtered
+    // competition-matches response, absent/null on the team-scoped
+    // nextManUtdFixture query, which isn't matchday-scoped.
+
+    @Test
+    fun `matchday present in json decodes to its value`() {
+        val json = """
+            {"id": 1, "utcDate": "2026-08-12T19:00:00Z", "status": "SCHEDULED", "matchday": 3,
+             "competition": {"id": 1, "name": "Premier League"},
+             "homeTeam": {"id": 1, "name": "Team A"},
+             "awayTeam": {"id": 2, "name": "Team B"},
+             "score": {"fullTime": {"home": null, "away": null}}}
+        """.trimIndent()
+        val dto = decode(json)
+        assertEquals(3, dto.matchday)
+    }
+
+    @Test
+    fun `matchday absent from json defaults to null`() {
+        val json = """
+            {"id": 1, "utcDate": "2026-08-12T19:00:00Z", "status": "SCHEDULED",
+             "competition": {"id": 1, "name": "Premier League"},
+             "homeTeam": {"id": 1, "name": "Team A"},
+             "awayTeam": {"id": 2, "name": "Team B"},
+             "score": {"fullTime": {"home": null, "away": null}}}
+        """.trimIndent()
+        val dto = decode(json)
+        assertNull(dto.matchday)
+    }
+
+    @Test
+    fun `matchday explicitly null in json decodes to null`() {
+        val json = """
+            {"id": 1, "utcDate": "2026-08-12T19:00:00Z", "status": "SCHEDULED", "matchday": null,
+             "competition": {"id": 1, "name": "Premier League"},
+             "homeTeam": {"id": 1, "name": "Team A"},
+             "awayTeam": {"id": 2, "name": "Team B"},
+             "score": {"fullTime": {"home": null, "away": null}}}
+        """.trimIndent()
+        val dto = decode(json)
+        assertNull(dto.matchday)
+    }
+
+    // -- FootballCompetitionDetailDto/FootballSeasonDto decoding ---------
+    //
+    // Backs FootballRepository.fetchCurrentMatchday (GET /v4/competitions/
+    // PL). Follows this file's existing tolerance convention: a missing or
+    // unexpected field degrades to null rather than a decode crash.
+
+    private fun decodeCompetitionDetail(json: String): FootballCompetitionDetailDto =
+        XtreamJson.decodeFromString(FootballCompetitionDetailDto.serializer(), json)
+
+    @Test
+    fun `competition detail with currentMatchday decodes it`() {
+        val json = """{"currentSeason": {"currentMatchday": 5}}"""
+        val dto = decodeCompetitionDetail(json)
+        assertEquals(5, dto.currentSeason.currentMatchday)
+    }
+
+    @Test
+    fun `competition detail missing currentSeason defaults to null matchday rather than crashing`() {
+        val json = """{"id": 2021, "name": "Premier League"}"""
+        val dto = decodeCompetitionDetail(json)
+        assertNull(dto.currentSeason.currentMatchday)
+    }
+
+    @Test
+    fun `competition detail with missing currentMatchday defaults to null`() {
+        val json = """{"currentSeason": {"startDate": "2026-08-01"}}"""
+        val dto = decodeCompetitionDetail(json)
+        assertNull(dto.currentSeason.currentMatchday)
+    }
+
+    @Test
+    fun `competition detail with null currentMatchday decodes to null`() {
+        val json = """{"currentSeason": {"currentMatchday": null}}"""
+        val dto = decodeCompetitionDetail(json)
+        assertNull(dto.currentSeason.currentMatchday)
+    }
 }
