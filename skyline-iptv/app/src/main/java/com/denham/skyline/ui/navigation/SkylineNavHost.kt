@@ -4,6 +4,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.collectAsState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LiveTv
@@ -46,6 +47,7 @@ import com.denham.skyline.ui.detail.MovieDetailViewModel
 import com.denham.skyline.ui.detail.SeriesDetailScreen
 import com.denham.skyline.ui.detail.SeriesDetailViewModel
 import com.denham.skyline.ui.downloads.DownloadsScreen
+import com.denham.skyline.ui.fixtures.FixturesScreen
 import com.denham.skyline.ui.downloads.DownloadsViewModel
 import com.denham.skyline.ui.guide.GuideScreen
 import com.denham.skyline.ui.guide.GuideViewModel
@@ -76,6 +78,7 @@ object Routes {
     const val MOVIES = "movies"
     const val SERIES = "series"
     const val GUIDE = "guide"
+    const val FIXTURES = "fixtures"
     const val SEARCH = "search"
     const val SETTINGS = "settings"
     const val CATEGORY_CUSTOMIZATION = "category_customization/{familyMember}"
@@ -223,6 +226,7 @@ fun SkylineNavHost(
                     onViewAllLive = { navController.navigate(Routes.LIVE) },
                     onViewAllMovies = { navController.navigate(Routes.MOVIES) },
                     onViewAllSeries = { navController.navigate(Routes.SERIES) },
+                    onViewAllFixtures = { navController.navigate(Routes.FIXTURES) },
                     onPlayVod = { url, title ->
                         playVod(
                             VodPlaybackRequest(
@@ -276,6 +280,26 @@ fun SkylineNavHost(
                     viewModel = vm,
                     onPlayChannel = { navController.navigateToLivePlayer(it) },
                 )
+            }
+
+            composable(Routes.FIXTURES) {
+                val vm = containerViewModel { HomeViewModel(it) }
+                val footballSection = vm.footballSection.collectAsState()
+                val fixtureChannels = vm.fixtureChannels.collectAsState()
+                val selectedMember = vm.selectedFamilyMember.collectAsState()
+
+                if (selectedMember.value == "David") {
+                    val fixtures = when (val state = footballSection.value) {
+                        is com.denham.skyline.ui.home.FootballSectionState.Loaded -> state.roundFixtures
+                        else -> emptyList()
+                    }
+                    FixturesScreen(
+                        fixtures = fixtures,
+                        fixtureChannels = fixtureChannels.value,
+                        onPlayChannel = { navController.navigateToLivePlayer(it) },
+                        onBack = { navController.popBackStack() }
+                    )
+                }
             }
 
             composable(Routes.SEARCH) {
