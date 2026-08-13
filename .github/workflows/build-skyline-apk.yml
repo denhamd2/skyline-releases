@@ -2,7 +2,7 @@ name: Build Skyline APK # phone + TV
 
 on:
   push:
-    branches: ["main", "claude/github-actions-storage-xdluad"]
+    branches: ["main"]
     paths:
       - "skyline-iptv/**"
       - ".github/workflows/build-skyline-apk.yml"
