@@ -270,32 +270,33 @@ reverted or reworked.
 
 ## Visuals
 
-**Mockup generation attempted, failed — network egress, not a missing
-key.** `KIE_AI_API_KEY` is set in this environment. Per the "screen isn't
-Roborazzi-coverable" fallback (confirmed above, twice over), I built a
-text-to-image prompt grounded directly in the source-read layout — dark
-`SkyPalette.Canvas` background, "Man Utd next" spotlight card with the
-indigo/navy gradient and `SkyRadius.hero` corners, a visible gap, "This
-round" label, then a full-width vertical stack of flat `SkyPalette.Surface`
-`FixtureCard`s with mirrored crest/name/status rows and outlined channel
-chips — saved at
-`design/football-fixtures-list-redesign/mockups/prompt.txt` for reuse.
+**Mockup generated successfully**, once the session's network egress
+policy was widened to Full (originally blocked, see below):
+`design/football-fixtures-list-redesign/mockups/home-football-section.png`
+(`gpt-image-2-text-to-image`, 941×1672, `taskId`
+`b4ddf318b4667b6c444e35ffcb1f1e8d`). Generated from the prompt saved at
+`design/football-fixtures-list-redesign/mockups/prompt.txt` (unchanged from
+the first attempt — grounded in `SkyPalette.Canvas` background, the "Man
+Utd next" spotlight card with its indigo/navy gradient and `SkyRadius.hero`
+corners, a visible gap, "This round" label, then a full-width vertical
+stack of flat `SkyPalette.Surface` `FixtureCard`s with mirrored
+crest/name/status rows and outlined channel chips). The result visibly
+matches the shipped layout: spotlight card → clear gap → "This round" label
+→ three full-width fixture cards stacked top-to-bottom with even gaps, no
+horizontal carousel.
 
-The `createTask` call itself failed: `curl`/`urllib` both got `CONNECT
-tunnel failed, response 403` against `api.kie.ai:443`. Checked
-`$HTTPS_PROXY/__agentproxy/status` directly — it logs a
-`recentRelayFailures` entry for this exact host/timestamp: `"kind":
+**First attempt failed — network egress, not a missing key.**
+`KIE_AI_API_KEY` was set throughout; the initial `createTask` call got
+`CONNECT tunnel failed, response 403` against `api.kie.ai:443`, confirmed
+via `$HTTPS_PROXY/__agentproxy/status`'s `recentRelayFailures` (`"kind":
 "connect_rejected", "detail": "gateway answered 403 to CONNECT (policy
-denial or upstream failure)"`. Retried once (per the proxy README's own
-guidance to distinguish transient failure from policy denial before
-reporting) — same 403 both times. Per this environment's proxy README,
-403/407 from the proxy is an organization egress-policy signal, not
-something to retry around or work past. **No mockup was generated in this
-session; this is an environment/network constraint, not a decision to skip
-one.** The saved prompt is ready to submit as soon as `api.kie.ai` is
-reachable from a session (e.g. a future session where the egress policy
-allows it, matching how `football-fixture-card-polish.md` eventually
-expects `KIE_AI_API_KEY` reachability to resolve).
+denial or upstream failure)"`) and a retry that hit the same 403. Per this
+environment's proxy README, that's an organization egress-policy signal,
+not something to retry around. The user then changed this environment's
+network access setting to Full, `api.kie.ai` became reachable (confirmed
+via a plain `curl` returning `404` on the bare root instead of a proxy
+403, and an empty `recentRelayFailures`), and the mockup above was
+generated on the next attempt in the same session.
 
 ## Open items carried over from prior briefs (not part of this PR, for the record)
 
@@ -320,17 +321,18 @@ expects `KIE_AI_API_KEY` reachability to resolve).
   branch `claude/fixture-spacing-carousel-x0s6qn`, commit `6760a60`. No
   further implementation work is required for the two fixes described
   above.
-- **Visuals**: skipped — kie.ai `createTask` failed with a `403` egress
-  policy denial from this session's proxy (`api.kie.ai:443` blocked per
-  `$HTTPS_PROXY/__agentproxy/status`'s `recentRelayFailures`), confirmed on
-  a retry, not a missing-key or "just a restyle" skip. Prompt saved at
-  `design/football-fixtures-list-redesign/mockups/prompt.txt` for
-  regeneration once `api.kie.ai` is reachable from a session. No "current
-  state" screenshot either — `HomeScreenshotTest.kt` deliberately excludes
-  the Football section (confirmed via its doc comment and by opening
-  `docs/skyline-screenshots/home_david.png` directly), and this
-  environment cannot resolve the Android Gradle Plugin to run/extend that
-  test regardless (confirmed by running it).
+- **Visuals**: generated —
+  `design/football-fixtures-list-redesign/mockups/home-football-section.png`,
+  after the environment's network access was widened to Full (the initial
+  attempt hit a `403` egress-policy denial on `api.kie.ai:443`; see
+  "Visuals" above for both attempts). No "current state" screenshot exists
+  — `HomeScreenshotTest.kt` deliberately excludes the Football section
+  (confirmed via its doc comment and by opening
+  `docs/skyline-screenshots/home_david.png` directly), and this environment
+  cannot resolve the Android Gradle Plugin to run/extend that test
+  regardless (confirmed by running it) — so the mockup is text-to-image
+  grounded in the source read, not image-to-image grounded in a captured
+  screenshot.
 - **Summary**: Reviewed the already-shipped spacing fix and carousel→
   vertical-list redesign of David's "Football" round-fixtures section on
   Home against the design system and general UX practice; both changes are
