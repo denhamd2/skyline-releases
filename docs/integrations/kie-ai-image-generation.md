@@ -97,6 +97,27 @@ Skyline rather than generic Material:
   `docs/skyline-screenshots/` by description if one exists, and note any
   known divergence (nav/section changes since the baseline was made).
 
+### Never let text-to-image invent chrome
+
+A mockup generated pure text-to-image once invented a bottom nav bar
+("Home / TV / Sports / Downloads / Search" with a football icon) that
+doesn't exist in the app — plausible-looking, but wrong, because
+text-to-image has no ground truth to work from. The real nav bar (exactly
+5 items: Home/Live/Films/Series/TV Guide, no Sports/Downloads/Search tab)
+is documented in `.claude/agents/ux-design.md`'s "App chrome" section —
+quote it verbatim in any chrome-inclusive prompt.
+
+**Prefer image-to-image over text-to-image whenever any real screenshot of
+the target screen exists in the repo** (`docs/skyline-screenshots/`), even
+one that's stale or doesn't cover the exact section being designed — real
+chrome/header/unrelated-content beats invented chrome every time. If the
+screenshot is missing the specific section being added, still use it as
+the image-to-image base and prompt the model to composite a
+source-grounded description of the new section into the correct position,
+rather than dropping to text-to-image for the whole screen. Reserve pure
+text-to-image for screens with no existing screenshot anywhere in the
+repo. Full grounding workflow: `docs/integrations/live-screenshot-capture.md`.
+
 ## Scope
 
 Every design task generates a mockup now — new screens, restyles, new

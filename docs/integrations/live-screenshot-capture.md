@@ -14,6 +14,20 @@ potentially-stale doc.
 
 ## Workflow
 
+0. **Check for an already-committed screenshot before running anything.**
+   `docs/skyline-screenshots/` may already have a real, current capture of
+   the target screen — and Roborazzi/Gradle may not even be resolvable in
+   this session (a sandboxed Claude Code environment can fail to resolve
+   the Android Gradle Plugin entirely; `skyline-iptv/CLAUDE.md` documents
+   this as an expected, standing constraint, not a bug). An existing PNG,
+   even a stale one or one that doesn't cover the exact state needed, is
+   real ground truth for chrome/header/unrelated sections and should be
+   preferred over skipping grounding or falling straight to text-to-image.
+   If it doesn't cover the specific section you're adding/changing, use it
+   as the image-to-image base anyway and composite a source-grounded
+   description of the missing part into the right position — see
+   `docs/integrations/kie-ai-image-generation.md`'s "Never let text-to-image
+   invent chrome" for why this beats a from-scratch text-to-image mockup.
 1. **Find existing coverage.** Look in
    `skyline-iptv/app/src/test/java/com/denham/skyline/ui/ScreenshotTests.kt`
    and any other `*ScreenshotTests.kt` / `*Screenshots.kt` files for a test

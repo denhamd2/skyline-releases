@@ -119,6 +119,24 @@ slight negative tracking, 16–20px body with generous line height.
 Always reference via `MaterialTheme.typography.*` — never a hardcoded
 `fontSize`.
 
+**App chrome** (quote exactly — never approximate or invent this in a
+mockup prompt): `ui/navigation/SkylineNavHost.kt:114-122,146-178` defines
+the **only** navigation chrome in the app, a bottom `NavigationBar` with
+exactly 5 items — **Home** (`Icons.Default.Home`), **Live**
+(`Icons.Default.LiveTv`), **Films** (`Icons.Default.Movie`), **Series**
+(`Icons.Default.Tv`), **TV Guide** (`Icons.Default.ViewList`). There is no
+"Sports", "Downloads", or "Search" tab (Sports is a filter inside Live;
+Downloads is reached via Account; Search is a header icon on Home, not a
+bottom-bar item) and no separate top app bar anywhere in the app — a
+screen's header (wordmark, search/account icons, etc.) is in-content and
+scrolls with the page. Bar background = `SkyPalette.Canvas` (same as page
+background); selected item = `SkyPalette.Accent` icon+label; unselected =
+`SkyPalette.TextSecondary`; **no pill/indicator shape** behind the selected
+item — colour change only. The bar shows only on the 5 routes above
+(hidden in PiP and on detail/player/settings/account screens). Any phone
+mockup that includes chrome must match this exactly — see "Never let
+text-to-image invent chrome" below.
+
 ## Hard rules
 
 - **Colour is machine-enforced.** `./gradlew detektDesignSystem` fails the
@@ -174,16 +192,23 @@ request/response shape, auth, and prompting guidance:
 1. Check `$KIE_AI_API_KEY` is set. If it isn't, say so plainly in the brief
    and handoff, and skip image generation — don't block the rest of the
    brief on it, and never ask the user to paste a key into chat.
-2. **New screen or materially new flow** → text-to-image
-   (`gpt-image-2-text-to-image`): build a prompt grounded in the tokens and
-   hierarchy above (colours by description, phone vs. TV framing, any
-   relevant baseline) so the output actually looks like Skyline.
-3. **Edit to a screen that already exists** → image-to-image
-   (`gpt-image-2-image-to-image`), using the live screenshot from
-   "Grounding an edit to an existing screen" below as the input image:
-   upload it to get a URL, then prompt for the specific change (the new
-   section/component/restyle) so the model edits the real current layout
-   rather than inventing one from scratch.
+2. **Brand-new screen with genuinely no existing screenshot of it anywhere
+   in the repo** → text-to-image (`gpt-image-2-text-to-image`): build a
+   prompt grounded in the tokens/hierarchy above (colours by description,
+   phone vs. TV framing, any relevant baseline) **and always quote the real
+   "App chrome" spec above verbatim for the nav bar** — never leave chrome
+   to the model's guess (see "Never let text-to-image invent chrome"
+   below).
+3. **Edit to a screen that already exists, OR any screen where a real
+   screenshot already exists anywhere in the repo (even an imperfect or
+   partial one)** → image-to-image (`gpt-image-2-image-to-image`), using
+   that screenshot as the input image: upload it to get a URL, then prompt
+   for the specific change (the new section/component/restyle) so the
+   model edits real, ground-truth pixels rather than inventing a layout
+   from scratch. Prefer this over text-to-image whenever *any* usable
+   screenshot exists — see "Grounding an edit to an existing screen" below
+   for what counts as usable and how to handle a screenshot that doesn't
+   cover the exact target state.
 4. Call the API, poll for completion, and save the result(s) to
    `design/<feature>/mockups/*.png`.
 5. Reference the saved path(s) in the design brief and the handoff.
@@ -194,6 +219,27 @@ mockup exists or a specific reason for skipping it is recorded (missing
 key, API failure) — "it's just a restyle" is no longer a valid reason to
 skip.
 
+### Never let text-to-image invent chrome
+
+A prior mockup generated pure text-to-image invented a bottom nav bar
+("Home / TV / Sports / Downloads / Search" with a football icon) that does
+not exist in the app — the model produced something plausible-looking
+rather than the real 5-item bar, because text-to-image has no ground truth
+to work from. This is now a hard rule, not a style preference:
+
+- **If any real screenshot of the target screen exists** (even one that
+  doesn't cover the specific section being added/changed — e.g. it's
+  missing a gated section, or is slightly stale), **use it as the
+  image-to-image base** and describe the delta in the prompt. A partial
+  real screenshot beats a fully-invented one: chrome, header, and
+  unrelated sections come from real pixels; only the actual new/changed
+  content is prompted from a source-grounded description. See "Grounding
+  an edit to an existing screen" below for exactly this scenario.
+- **Only when literally no screenshot of that screen exists anywhere in the
+  repo** (a genuinely brand-new screen) is pure text-to-image acceptable —
+  and even then, the nav bar/chrome portion of the prompt must quote the
+  "App chrome" spec above verbatim, not a paraphrase or a plausible guess.
+
 ## Grounding an edit to an existing screen
 
 For anything that **modifies a screen that already exists** — a new
@@ -203,34 +249,63 @@ screen as it renders **today** first, and use it as a direct input to both
 the design reasoning and the kie.ai image-to-image mockup above. Full
 workflow: `docs/integrations/live-screenshot-capture.md`. In short:
 
-1. Find or write a scoped Roborazzi test for the target screen and run it
+1. **Check `docs/skyline-screenshots/` for an already-committed screenshot
+   of the target screen first**, before attempting to run anything —
+   Roborazzi/Gradle may not even be resolvable in this session (a sandboxed
+   Claude Code environment can fail to resolve the Android Gradle Plugin
+   entirely; check `skyline-iptv/CLAUDE.md` before assuming Gradle works).
+   An existing committed PNG, even one that's slightly stale or doesn't
+   cover the exact state you need, is real ground truth for chrome/header/
+   unrelated sections and should be preferred over generating nothing or
+   falling straight to text-to-image.
+2. **If none exists (or you can confirm Gradle/Roborazzi does work here),
+   find or write a scoped Roborazzi test** for the target screen and run it
    (`./gradlew testDebugUnitTest --tests "*<ScreenName>*"`).
-2. Locate the resulting PNG and save/reference it as
-   `design/<feature>/current-state/<screen>.png`.
-3. Read it as ground truth for what's actually on screen — it may have
+3. Locate the resulting PNG (existing or newly captured) and save/reference
+   it as `design/<feature>/current-state/<screen>.png`.
+4. Read it as ground truth for what's actually on screen — it may have
    drifted from `reference-designs/` (already flagged there as a
    stale baseline, not an exact spec).
-4. If the screenshot shows something wrong (a design-system violation,
+5. If the screenshot shows something wrong (a design-system violation,
    off-grid spacing, a broken layout, poor contrast), don't just replicate
    it — call it out and fold the fix into the brief. In the brief, mark
    clearly which changes are the requested edit and which are opportunistic
    fixes you found, so the developer and reviewer can tell them apart.
-5. If the screen isn't Roborazzi-coverable (e.g. the player screen), say so
-   in the brief, fall back to reading the Compose source directly rather
-   than blocking, and fall back to text-to-image for the mockup (describe
-   the current layout from source instead of an input image).
-6. Feed the captured screenshot into the image-to-image mockup step above —
-   don't skip mockup generation just because this is an edit, not a new
-   screen.
+6. **If the screenshot doesn't cover the specific section/state you're
+   designing** (e.g. it's gated behind a build-time secret unavailable
+   locally, like `HomeScreen`'s Football section behind
+   `BuildConfig.FOOTBALL_DATA_API_KEY`) — **still use it as the
+   image-to-image base.** Read the missing section's Compose source
+   directly to write an exact, grounded description of it, and prompt
+   kie.ai to composite that description into the real screenshot at the
+   correct position (confirm the position from the screen's actual render
+   order in source, don't guess where it goes). This is the preferred path
+   over text-to-image whenever *any* real screenshot of the screen exists —
+   real chrome/header/unrelated-sections beats invented ones every time,
+   even if the specific new content is still source-described rather than
+   literally screen-captured. Say plainly in the brief which parts of the
+   mockup came from the real screenshot vs. a source-grounded description.
+7. Only when a screen has **no existing screenshot anywhere in the repo**
+   and genuinely isn't Roborazzi-coverable (e.g. the player screen, whose
+   video surface isn't meaningfully renderable under Robolectric) — say so
+   in the brief, fall back to reading the Compose source directly, and fall
+   back to text-to-image for the mockup, making sure to quote the "App
+   chrome" spec above verbatim for the nav bar rather than leaving it to
+   the model's guess.
+8. Feed the screenshot (real, or real+composited) into the image-to-image
+   mockup step above — don't skip mockup generation just because this is an
+   edit, not a new screen.
 
 ## Workflow
 
 1. **Identify the task**: a brand-new screen/flow, a modification to a
    screen that already exists, or a review of what's already implemented.
-   This determines which grounding path applies (new → style guide +
-   references only; modification → live screenshot first) — but either way,
-   a kie.ai mockup gets generated (text-to-image for new, image-to-image
-   from the screenshot for an edit).
+   This determines which grounding path applies — but check
+   `docs/skyline-screenshots/` for an existing capture of the screen
+   *regardless* of which path applies: even a "brand-new flow" task can
+   turn out to extend a screen that already has a real screenshot, in which
+   case image-to-image on that screenshot still beats text-to-image. Either
+   way, a kie.ai mockup gets generated.
 2. **Check baselines**: look at `reference-designs/` and
    `docs/skyline-screenshots/` for anything relevant. Call out explicitly
    where the current app has diverged from the baseline (nav items, section
