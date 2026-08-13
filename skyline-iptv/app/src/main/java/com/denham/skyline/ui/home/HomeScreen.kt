@@ -72,6 +72,7 @@ import com.denham.skyline.ui.theme.SkySpacing
 import com.denham.skyline.ui.update.UpdatePrompt
 import com.denham.skyline.ui.update.UpdateViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -315,14 +316,17 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
                 flowOf<FootballSectionState>(FootballSectionState.Hidden)
             } else {
                 kotlinx.coroutines.flow.flow<FootballSectionState> {
-                    emit(FootballSectionState.Loading)
-                    val manUtdNext = runCatching { container.footballRepository.nextManUtdFixture(apiKey) }
-                        .onFailure { android.util.Log.e("HomeViewModel", "Man Utd fixture fetch failed", it) }
-                        .getOrNull()
-                    val roundFixtures = runCatching { container.footballRepository.upcomingPremierLeagueRound(apiKey) }
-                        .onFailure { android.util.Log.e("HomeViewModel", "Upcoming PL round fetch failed", it) }
-                        .getOrDefault(emptyList())
-                    emit(FootballSectionState.Loaded(manUtdNext, roundFixtures))
+                    while (true) {
+                        emit(FootballSectionState.Loading)
+                        val manUtdNext = runCatching { container.footballRepository.nextManUtdFixture(apiKey) }
+                            .onFailure { android.util.Log.e("HomeViewModel", "Man Utd fixture fetch failed", it) }
+                            .getOrNull()
+                        val roundFixtures = runCatching { container.footballRepository.upcomingPremierLeagueRound(apiKey) }
+                            .onFailure { android.util.Log.e("HomeViewModel", "Upcoming PL round fetch failed", it) }
+                            .getOrDefault(emptyList())
+                        emit(FootballSectionState.Loaded(manUtdNext, roundFixtures))
+                        delay(30_000)
+                    }
                 }
             }
         }
