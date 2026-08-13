@@ -584,6 +584,7 @@ fun HomeScreen(
     onViewAllLive: () -> Unit,
     onViewAllMovies: () -> Unit,
     onViewAllSeries: () -> Unit,
+    onViewAllFixtures: () -> Unit = {},
     onPlayVod: (url: String, title: String) -> Unit = { _, _ -> },
     onPlayYoutube: (videoId: String, title: String, thumbnailUrl: String?) -> Unit = { _, _, _ -> },
 ) {
@@ -850,7 +851,12 @@ fun HomeScreen(
                                 )
                             }
                             if (football.roundFixtures.isNotEmpty()) {
-                                Rail("", football.roundFixtures, key = { it.id }) { fixture ->
+                                Rail(
+                                    "",
+                                    football.roundFixtures,
+                                    key = { it.id },
+                                    onViewAll = onViewAllFixtures
+                                ) { fixture ->
                                     FixtureCard(
                                         competition = fixture.competition,
                                         homeTeam = fixture.homeTeam,
