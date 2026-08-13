@@ -286,20 +286,17 @@ fun SkylineNavHost(
                 val vm = containerViewModel { HomeViewModel(it) }
                 val footballSection = vm.footballSection.collectAsState()
                 val fixtureChannels = vm.fixtureChannels.collectAsState()
-                val selectedMember = vm.selectedFamilyMember.collectAsState()
 
-                if (selectedMember.value == "David") {
-                    val fixtures = when (val state = footballSection.value) {
-                        is com.denham.skyline.ui.home.FootballSectionState.Loaded -> state.roundFixtures
-                        else -> emptyList()
-                    }
-                    FixturesScreen(
-                        fixtures = fixtures,
-                        fixtureChannels = fixtureChannels.value,
-                        onPlayChannel = { navController.navigateToLivePlayer(it) },
-                        onBack = { navController.popBackStack() }
-                    )
+                val fixtures = when (val state = footballSection.value) {
+                    is com.denham.skyline.ui.home.FootballSectionState.Loaded -> state.roundFixtures
+                    else -> emptyList()
                 }
+                FixturesScreen(
+                    fixtures = fixtures,
+                    fixtureChannels = fixtureChannels.value,
+                    onPlayChannel = { navController.navigateToLivePlayer(it) },
+                    onBack = { navController.popBackStack() }
+                )
             }
 
             composable(Routes.SEARCH) {
