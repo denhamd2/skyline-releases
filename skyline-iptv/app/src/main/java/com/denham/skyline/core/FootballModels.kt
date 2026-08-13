@@ -61,6 +61,12 @@ data class FootballMatchDto(
     @SerialName("utcDate") val utcDate: String = "",
     val status: String = "",
     val minute: Int? = null,
+    // Present on every match returned by a matchday-filtered competition
+    // query (e.g. `/v4/competitions/PL/matches?matchday=<n>`); nullable
+    // since this same DTO also decodes team-scoped queries (e.g.
+    // `nextManUtdFixture`'s `/v4/teams/{id}/matches`) that aren't
+    // matchday-scoped.
+    val matchday: Int? = null,
     val competition: FootballCompetitionDto = FootballCompetitionDto(),
     val homeTeam: FootballTeamDto = FootballTeamDto(),
     val awayTeam: FootballTeamDto = FootballTeamDto(),
@@ -98,4 +104,20 @@ data class FootballScoreDto(
 data class FootballScoreLineDto(
     val home: Int? = null,
     val away: Int? = null,
+)
+
+/**
+ * `GET /v4/competitions/{code}` response shapes, used only to read off
+ * `currentSeason.currentMatchday` for round selection (see
+ * [FootballRepository.fetchCurrentMatchday]) -- kept minimal rather than
+ * modelling the full competition-detail response.
+ */
+@Serializable
+data class FootballCompetitionDetailDto(
+    val currentSeason: FootballSeasonDto = FootballSeasonDto(),
+)
+
+@Serializable
+data class FootballSeasonDto(
+    val currentMatchday: Int? = null,
 )
