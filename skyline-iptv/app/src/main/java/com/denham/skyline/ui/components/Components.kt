@@ -10,13 +10,13 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,12 +29,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -56,6 +56,7 @@ import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -423,6 +424,7 @@ fun FixtureCard(
     onPlayChannel: (ChannelEntity) -> Unit,
     modifier: Modifier = Modifier,
     width: Dp? = 240.dp,
+    isSpotlight: Boolean = false,
 ) {
     val singleMatch = channels.singleOrNull()
     val sizedModifier = if (width != null) modifier.width(width) else modifier.fillMaxWidth()
@@ -431,11 +433,24 @@ fun FixtureCard(
     } else {
         sizedModifier
     }
+    val cornerRadius = if (isSpotlight) SkyRadius.hero else SkyRadius.card
+    val backgroundModifier = if (isSpotlight) {
+        Modifier.background(
+            Brush.linearGradient(
+                listOf(
+                    SkyPalette.SurfaceElevated,
+                    SkyPalette.Indigo.copy(alpha = 0.55f),
+                )
+            )
+        )
+    } else {
+        Modifier.background(SkyPalette.Surface)
+    }
 
     Column(
         clickableModifier
-            .clip(RoundedCornerShape(SkyRadius.card))
-            .background(SkyPalette.Surface)
+            .clip(RoundedCornerShape(cornerRadius))
+            .then(backgroundModifier)
             .padding(SkySpacing.m),
     ) {
         ProviderBadge(competition)
@@ -464,6 +479,7 @@ fun FixtureCard(
                 color = SkyPalette.TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.End,
                 modifier = Modifier.weight(1f).padding(horizontal = SkySpacing.xs),
             )
             ArtworkImage(
@@ -479,11 +495,21 @@ fun FixtureCard(
 
         when (status) {
             is FixtureStatus.Scheduled -> {
-                Text(
-                    status.kickoffLocal,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = SkyPalette.TextSecondary,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(SkySpacing.xs),
+                ) {
+                    Icon(
+                        Icons.Default.Schedule, null,
+                        tint = SkyPalette.TextMuted,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text(
+                        status.kickoffLocal,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = SkyPalette.TextSecondary,
+                    )
+                }
             }
             is FixtureStatus.Live -> {
                 Row(
@@ -527,9 +553,9 @@ fun FixtureCard(
                 color = SkyPalette.TextMuted,
             )
         } else {
-            Row(
+            FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(SkySpacing.xs),
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(SkySpacing.xs),
             ) {
                 channels.forEach { channel ->
                     FixtureChannelChip(channel = channel, onClick = { onPlayChannel(channel) })

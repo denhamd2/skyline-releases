@@ -243,6 +243,62 @@ ChannelCard(
 
 ---
 
+### Fixture Card (Football Match Card)
+
+**File:** `ui/components/Components.kt` → `FixtureCard()`
+
+For football fixtures on Home — competition badge, mirrored crest/team-name/crest
+row, status (scheduled/live/finished), and matched EPG channel chips. Used both
+as a single full-bleed spotlight (`width = null`, `isSpotlight = true`) for
+David's next match and repeated in the "Football today" rail
+(`isSpotlight = false`, the default).
+
+```kotlin
+FixtureCard(
+    competition = fixture.competition,
+    homeTeam = fixture.homeTeam,
+    awayTeam = fixture.awayTeam,
+    homeCrestUrl = fixture.homeCrestUrl,
+    awayCrestUrl = fixture.awayCrestUrl,
+    status = fixture.status,
+    channels = fixtureChannels[fixture.id] ?: emptyList(),
+    onPlayChannel = onPlayChannel,
+    isSpotlight = true,   // spotlight call site only; rail cards omit this (defaults false)
+    width = null,
+)
+```
+
+**Appearance:**
+- Rail card (`isSpotlight = false`): flat `SkyPalette.Surface` background, `SkyRadius.card` (16dp) corners
+- Spotlight card (`isSpotlight = true`): `SkyPalette.SurfaceElevated → SkyPalette.Indigo` linear gradient (same treatment as `ChannelCard`), `SkyRadius.hero` (22dp) corners
+- `ProviderBadge` for competition name, top
+- Team row: home crest (28dp) → home name (start-aligned) → "v" → away name (end-aligned, mirrors the home name so it hugs its own crest) → away crest (28dp)
+- Status row, one of:
+  - `Scheduled`: 14dp `Icons.Default.Schedule` icon (`SkyPalette.TextMuted`) + kickoff time text, `Arrangement.spacedBy(SkySpacing.xs)`
+  - `Live`: `LiveBadge()` + score + minute
+  - `Finished`: muted "FT" tag + score
+- Channel chips: `FixtureChannelChip` per matched `ChannelEntity`, laid out in a `FlowRow` (wraps instead of horizontally scrolling, since it sits inside a `Rail`'s own `LazyRow` at rail width and a second independently-scrollable region would fight the rail's swipe gesture)
+- Zero matched channels: muted "Not on your channels" text instead of chips
+- Tap: whole card plays the single matched channel directly when exactly one channel matches; inert (chips-only) when 0 or 2+ match, so a tap is never ambiguous
+- Phone-only today — no TV focus treatment implemented; needs the standard 1.04x/white-outline TV treatment plus individually D-pad-focusable chips before reuse on TV
+
+---
+
+### Fixture Channel Chip (Outlined EPG Match Chip)
+
+**File:** `ui/components/Components.kt` → `FixtureChannelChip()` (private, internal to `FixtureCard`)
+
+Low-emphasis outlined chip for one EPG channel matched to a fixture. Not a
+top-level export — only used inside `FixtureCard`'s channel row.
+
+**Appearance:**
+- Outline: 1dp `SkyPalette.Accent`, `SkyRadius.chip` (8dp) corners
+- 12dp `Icons.Default.PlayArrow` icon + channel name, both `SkyPalette.Accent`
+- Padding: `SkySpacing.s` horizontal, `SkySpacing.xs` vertical
+- Press: `scaledClickable` → plays that channel
+
+---
+
 ### TV Landscape Card (16:9 with Focus Treatment)
 
 **File:** `tv/TvComponents.kt` → `TvLandscapeCard()`

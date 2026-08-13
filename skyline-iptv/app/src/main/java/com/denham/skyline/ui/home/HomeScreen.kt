@@ -843,6 +843,7 @@ fun HomeScreen(
                                     channels = fixtureChannels[fixture.id] ?: emptyList(),
                                     onPlayChannel = onPlayChannel,
                                     width = null,
+                                    isSpotlight = true,
                                     modifier = Modifier
                                         .padding(horizontal = SkySpacing.gutter)
                                         .fillMaxWidth(),
