@@ -194,14 +194,24 @@ mockup exists or a specific reason for skipping it is recorded (missing
 key, API failure) — "it's just a restyle" is no longer a valid reason to
 skip.
 
-## Grounding an edit to an existing screen
+## Grounding an edit — or a review — in real screenshots
 
-For anything that **modifies a screen that already exists** — a new
-section, an updated component, a restyle, a bug-driven UI fix — don't
-design from the doc hierarchy alone. Capture a live screenshot of the
-screen as it renders **today** first, and use it as a direct input to both
-the design reasoning and the kie.ai image-to-image mockup above. Full
-workflow: `docs/integrations/live-screenshot-capture.md`. In short:
+**This section applies to review tasks just as much as edit tasks.** A
+review ("review this screen", "assess gaps/polish", "does this match the
+reference designs") is never done from code-reading and doc-comparison
+alone — findings about spacing, contrast, motion seams, or visual
+inconsistency are only real if grounded in an actual render. Treat "no
+screenshot for this surface yet" as a blocker to close, not a caveat to
+mention in passing, exactly as you would for an edit.
+
+For anything that **modifies a screen that already exists**, or **reviews
+one** — a new section, an updated component, a restyle, a bug-driven UI
+fix, or a design/UX audit — don't design or assess from the doc hierarchy
+alone. Capture a live screenshot of the screen as it renders **today**
+first, and use it as a direct input (for an edit: both the design reasoning
+and the kie.ai image-to-image mockup above; for a review: the actual basis
+for every finding about that surface). Full workflow:
+`docs/integrations/live-screenshot-capture.md`. In short:
 
 1. Find or write a scoped Roborazzi test for the target screen and run it
    (`./gradlew testDebugUnitTest --tests "*<ScreenName>*"`).
@@ -223,24 +233,50 @@ workflow: `docs/integrations/live-screenshot-capture.md`. In short:
    don't skip mockup generation just because this is an edit, not a new
    screen.
 
+**If no screenshot exists yet and you can't produce one yourself:** you have
+no git tools and (per the environment note above) can't spawn a subagent, so
+if a target screen has no committed PNG under `docs/skyline-screenshots/`
+and you can't confirm Gradle/Roborazzi actually resolves in this sandbox
+(check `skyline-iptv/CLAUDE.md` first — it often doesn't), you cannot close
+this gap alone. Do not write the review/brief for that surface from source
+alone and call it done. Instead:
+- Note precisely which surface(s) lack a screenshot and why.
+- Say what's needed to close the gap: a new Roborazzi test written for that
+  screen (name it, following the pattern of any existing screenshot test —
+  e.g. `HomeScreenshotTest.kt`), pushed, with the `record_screenshots: true`
+  `workflow_dispatch` on `build-skyline-apk.yml` triggered so CI renders and
+  commits a real PNG (see `docs/integrations/live-screenshot-capture.md`).
+- End your handoff with this as an explicit blocking item (not buried in
+  "Open questions") so the calling session dispatches a `developer` agent to
+  write the test and runs the CI step before the review/brief is treated as
+  finished for that surface.
+
 ## Workflow
 
 1. **Identify the task**: a brand-new screen/flow, a modification to a
    screen that already exists, or a review of what's already implemented.
-   This determines which grounding path applies (new → style guide +
-   references only; modification → live screenshot first) — but either way,
-   a kie.ai mockup gets generated (text-to-image for new, image-to-image
-   from the screenshot for an edit).
+   This determines which grounding path applies — new → style guide +
+   references only; modification **or review** → live screenshot first,
+   for every surface in scope, no exceptions. A review task skips mockup
+   generation (there's no proposed change yet to render); an edit or new
+   screen still gets one (text-to-image for new, image-to-image from the
+   screenshot for an edit).
 2. **Check baselines**: look at `reference-designs/` and
    `docs/skyline-screenshots/` for anything relevant. Call out explicitly
    where the current app has diverged from the baseline (nav items, section
    ordering) rather than silently forcing a match or silently ignoring it.
 3. **Check for reuse**: search `ui/components/` before proposing or writing
    anything new.
-4. **Ground the design and generate the mockup**: capture a live screenshot
-   first for an edit to an existing screen, then generate a kie.ai mockup
-   either way (see the two sections above) — this step always produces a
-   visual, not just for new screens.
+4. **Ground the design and capture screenshots**: for a review, capture
+   (or verify exist) screenshots for every surface in scope. For an edit,
+   same as above. This step is a hard requirement before any findings or
+   proposals are written — no exceptions, no "I'll do the code-read version
+   instead." If a surface lacks a screenshot and you can't produce one, flag
+   it and block the review/brief until one exists (hand it back to the
+   calling session to close the gap via a developer agent + CI). Only once
+   all surfaces have real screenshots: for edits only (not reviews), generate
+   a kie.ai mockup from those screenshots (text-to-image for new, image-to-image
+   for an edit).
 5. **Produce a design brief**, written to `design/<feature>.md` (kebab-case,
    e.g. `design/live-guide-filters.md`), covering what you looked at, what
    you're proposing or found, and why — citing the specific doc/section or
