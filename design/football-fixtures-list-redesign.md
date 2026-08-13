@@ -270,33 +270,63 @@ reverted or reworked.
 
 ## Visuals
 
-**Mockup generated successfully**, once the session's network egress
-policy was widened to Full (originally blocked, see below):
+**Mockup regenerated as image-to-image, grounded in the real current
+screenshot** (superseding an earlier text-to-image version — see "Revision
+history" below):
 `design/football-fixtures-list-redesign/mockups/home-football-section.png`
-(`gpt-image-2-text-to-image`, 941×1672, `taskId`
-`b4ddf318b4667b6c444e35ffcb1f1e8d`). Generated from the prompt saved at
-`design/football-fixtures-list-redesign/mockups/prompt.txt` (unchanged from
-the first attempt — grounded in `SkyPalette.Canvas` background, the "Man
-Utd next" spotlight card with its indigo/navy gradient and `SkyRadius.hero`
-corners, a visible gap, "This round" label, then a full-width vertical
-stack of flat `SkyPalette.Surface` `FixtureCard`s with mirrored
-crest/name/status rows and outlined channel chips). The result visibly
-matches the shipped layout: spotlight card → clear gap → "This round" label
-→ three full-width fixture cards stacked top-to-bottom with even gaps, no
-horizontal carousel.
+(`gpt-image-2-image-to-image`, 941×1672, `taskId`
+`139b9efad7f3337d814662f1454b9cf6`). Input image was
+`docs/skyline-screenshots/home_david.png` (1078×2399, the real committed
+Roborazzi capture of `HomeScreen` with David selected — see "Grounding"
+above), uploaded via kie.ai's `file-base64-upload` endpoint per
+`docs/integrations/kie-ai-image-generation.md`. Prompt (saved at
+`design/football-fixtures-list-redesign/mockups/prompt.txt`) instructed
+preserving the screenshot's existing content pixel-faithfully (header
+wordmark/icons, hero card, Continue Watching, Who's watching chips,
+"David's channels" pinned rail, "Sky Sports Football" category rail) and
+inserting the Football section — "Man Utd next" spotlight card, gap, "This
+round" label, three vertically-stacked full-width fixture cards — directly
+between the "MUTV" pinned-rail card and the "Sky Sports Football" category
+rail, matching `HomeScreen.kt`'s actual render order (finding above). The
+prompt also specified the real 5-item bottom nav (Home/Live/Films/Series/TV
+Guide, `SkyPalette.Accent` blue on the selected "Home" icon+label only, no
+pill indicator, `SkyPalette.Canvas` bar background) appended once at the
+bottom of the composite, correcting the previous version's invented nav.
 
-**First attempt failed — network egress, not a missing key.**
-`KIE_AI_API_KEY` was set throughout; the initial `createTask` call got
-`CONNECT tunnel failed, response 403` against `api.kie.ai:443`, confirmed
-via `$HTTPS_PROXY/__agentproxy/status`'s `recentRelayFailures` (`"kind":
-"connect_rejected", "detail": "gateway answered 403 to CONNECT (policy
-denial or upstream failure)"`) and a retry that hit the same 403. Per this
-environment's proxy README, that's an organization egress-policy signal,
-not something to retry around. The user then changed this environment's
-network access setting to Full, `api.kie.ai` became reachable (confirmed
-via a plain `curl` returning `404` on the bare root instead of a proxy
-403, and an empty `recentRelayFailures`), and the mockup above was
-generated on the next attempt in the same session.
+Visual result, checked against the prompt: header/hero/Continue
+Watching/Who's watching chips/pinned rail are unchanged from the real
+screenshot; the Football section renders in the correct position with the
+right internal structure (spotlight card, gap, "This round" label, three
+stacked fixture cards, no carousel); the "Sky Sports Football" category
+rail still follows it; the bottom nav bar shows the correct 5 real items
+with only "Home" highlighted blue. One minor model liberty: the "Opponent
+FC" crest rendered as a generic placeholder badge rather than a blank/grey
+crest — cosmetic, doesn't affect the layout review.
+
+## Revision history
+
+**v2 (current)**: image-to-image, grounded in `docs/skyline-screenshots/home_david.png`,
+correct real bottom nav, full home-screen composite. Replaced v1 in place
+(same file path) per the user's request after reviewing v1 and flagging its
+nav bar as wrong.
+
+**v1 (superseded, not kept in the repo)**: pure text-to-image
+(`gpt-image-2-text-to-image`, `taskId` `b4ddf318b4667b6c444e35ffcb1f1e8d`),
+cropped to just the Football section with no surrounding screen content.
+Its biggest defect, caught by the user: it **invented** a bottom nav bar
+("Home / TV / Sports / Downloads / Search" with a football icon) that does
+not match the real app (`ui/navigation/SkylineNavHost.kt`'s actual 5 items
+are Home/Live/Films/Series/TV Guide — no Sports, Downloads, or Search tab
+exists on the bottom bar). Root cause: text-to-image has no ground truth to
+work from, so the model guessed plausible-looking nav rather than the real
+one — exactly the failure mode image-to-image grounding (this doc's v2,
+and the source-of-truth hierarchy's general preference for a live
+screenshot over guesswork) exists to prevent. v1's *first* generation
+attempt had additionally been blocked by this session's network egress
+policy (`api.kie.ai:443` denied with `403`); the user widened the
+environment's network access to Full, which is what let v1 (and then v2)
+actually reach kie.ai at all — recorded here since it's a real environment
+constraint future sessions may hit again.
 
 ## Open items carried over from prior briefs (not part of this PR, for the record)
 
@@ -322,17 +352,20 @@ generated on the next attempt in the same session.
   further implementation work is required for the two fixes described
   above.
 - **Visuals**: generated —
-  `design/football-fixtures-list-redesign/mockups/home-football-section.png`,
-  after the environment's network access was widened to Full (the initial
-  attempt hit a `403` egress-policy denial on `api.kie.ai:443`; see
-  "Visuals" above for both attempts). No "current state" screenshot exists
-  — `HomeScreenshotTest.kt` deliberately excludes the Football section
-  (confirmed via its doc comment and by opening
-  `docs/skyline-screenshots/home_david.png` directly), and this environment
+  `design/football-fixtures-list-redesign/mockups/home-football-section.png`
+  (v2, current), image-to-image grounded directly in the real committed
+  screenshot `docs/skyline-screenshots/home_david.png`, with the real
+  5-item bottom nav correctly rendered. Supersedes an earlier v1 that was
+  pure text-to-image and had an invented, incorrect nav bar — see "Visuals"
+  and "Revision history" above for the full account of both attempts and
+  why v2 was necessary. The Football section's own content still can't be
+  captured live end-to-end — `HomeScreenshotTest.kt` deliberately excludes
+  it (`BuildConfig.FOOTBALL_DATA_API_KEY` empty locally, and the test's
+  `OkHttpClient` always throws even with a key), and this environment
   cannot resolve the Android Gradle Plugin to run/extend that test
-  regardless (confirmed by running it) — so the mockup is text-to-image
-  grounded in the source read, not image-to-image grounded in a captured
-  screenshot.
+  regardless (confirmed by running it) — so the Football section itself is
+  still source-grounded (from `HomeScreen.kt`/`Components.kt`) composited
+  into the real screenshot, not literally screen-captured end to end.
 - **Summary**: Reviewed the already-shipped spacing fix and carousel→
   vertical-list redesign of David's "Football" round-fixtures section on
   Home against the design system and general UX practice; both changes are
