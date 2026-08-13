@@ -1,5 +1,6 @@
 package com.denham.skyline.ui.components
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -10,8 +11,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.onFocusChanged
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,7 +44,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -426,6 +431,7 @@ fun FixtureCard(
     width: Dp? = 240.dp,
     isSpotlight: Boolean = false,
 ) {
+    var isFocused by remember { mutableStateOf(false) }
     val singleMatch = channels.singleOrNull()
     val sizedModifier = if (width != null) modifier.width(width) else modifier.fillMaxWidth()
     val clickableModifier = if (singleMatch != null) {
@@ -449,9 +455,21 @@ fun FixtureCard(
 
     Column(
         clickableModifier
+            .focusable()
+            .onFocusChanged { isFocused = it.isFocused }
+            .graphicsLayer {
+                scaleX = if (isFocused) 1.04f else 1f
+                scaleY = if (isFocused) 1.04f else 1f
+            }
+            .border(
+                width = if (isFocused) 2.dp else 0.dp,
+                color = if (isFocused) Color.White else Color.Transparent,
+                shape = RoundedCornerShape(cornerRadius)
+            )
             .clip(RoundedCornerShape(cornerRadius))
             .then(backgroundModifier)
-            .padding(SkySpacing.m),
+            .padding(SkySpacing.m)
+            .animateContentSize(animationSpec = tween(durationMillis = 140)),
     ) {
         ProviderBadge(competition)
         Spacer(Modifier.height(SkySpacing.s))
@@ -507,7 +525,7 @@ fun FixtureCard(
                     Text(
                         status.kickoffLocal,
                         style = MaterialTheme.typography.labelMedium,
-                        color = SkyPalette.TextSecondary,
+                        color = SkyPalette.TextPrimary,
                     )
                 }
             }
@@ -525,7 +543,7 @@ fun FixtureCard(
                     Text(
                         status.minute,
                         style = MaterialTheme.typography.labelMedium,
-                        color = SkyPalette.TextSecondary,
+                        color = SkyPalette.TextPrimary,
                     )
                 }
             }
