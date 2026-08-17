@@ -1,4 +1,4 @@
-package com.denham.skyline.ui.fixtures
+package com.denham.skyline.tv
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -12,28 +12,29 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.denham.skyline.core.Fixture
 import com.denham.skyline.data.db.ChannelEntity
-import com.denham.skyline.ui.components.FixtureCard
 import com.denham.skyline.ui.components.enterReveal
 import com.denham.skyline.ui.components.revealDelay
 import com.denham.skyline.ui.theme.SkyPalette
 import com.denham.skyline.ui.theme.SkySpacing
 
 /**
- * Full-screen vertical list of football fixtures.
- * Reuses FixtureCard at full-width in a LazyColumn with staggered reveal motion.
- * Phone-only; TV support (D-pad focus) deferred to phase 2.
+ * TV counterpart to the phone `FixturesScreen` (ui/fixtures/FixturesScreen.kt)
+ * -- same vertical LazyColumn shape, full-width [TvFixtureCard]s, not a
+ * grid. Reached from the TV Football rail's "View all" and closed via the
+ * system Back key (handled by the caller's BackHandler, same pattern as
+ * TvPlayerOverlay).
  */
 @Composable
-fun FixturesScreen(
+fun TvFixturesScreen(
     fixtures: List<Fixture>,
     fixtureChannels: Map<Long, List<ChannelEntity>>,
     onPlayChannel: (ChannelEntity) -> Unit,
@@ -43,73 +44,70 @@ fun FixturesScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(SkyPalette.Canvas)
+            .background(SkyPalette.tvBackground)
     ) {
-        // Header with back button
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = SkySpacing.m, vertical = SkySpacing.m)
+                .padding(horizontal = 48.dp, vertical = SkySpacing.m)
         ) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier.align(Alignment.CenterStart)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .tvClickable(onClick = onBack)
+                    .padding(6.dp),
             ) {
                 Icon(
                     Icons.Default.ArrowBack,
                     contentDescription = "Back",
-                    tint = SkyPalette.TextPrimary
+                    tint = SkyPalette.TextPrimary,
                 )
             }
             Text(
                 "Football Fixtures",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineSmall,
                 color = SkyPalette.TextPrimary,
-                modifier = Modifier.align(Alignment.Center)
+                modifier = Modifier.align(Alignment.Center),
             )
         }
 
-        // Fixtures list
         if (fixtures.isEmpty()) {
-            // Empty state
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(SkySpacing.gutter),
-                contentAlignment = Alignment.Center
+                    .padding(48.dp),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     "No fixtures available",
                     style = MaterialTheme.typography.bodyMedium,
                     color = SkyPalette.TextSecondary,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
                 )
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(SkyPalette.Canvas)
-                    .padding(horizontal = SkySpacing.gutter),
+                modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(SkySpacing.s),
-                contentPadding = PaddingValues(vertical = SkySpacing.xl)
+                contentPadding = PaddingValues(horizontal = 48.dp, vertical = SkySpacing.xl),
             ) {
                 items(
                     count = fixtures.size,
-                    key = { fixtures[it].id }
+                    key = { fixtures[it].id },
                 ) { index ->
-                    FixtureCard(
-                        competition = fixtures[index].competition,
-                        homeTeam = fixtures[index].homeTeam,
-                        awayTeam = fixtures[index].awayTeam,
-                        homeCrestUrl = fixtures[index].homeCrestUrl,
-                        awayCrestUrl = fixtures[index].awayCrestUrl,
-                        status = fixtures[index].status,
-                        channels = fixtureChannels[fixtures[index].id] ?: emptyList(),
+                    val fixture = fixtures[index]
+                    TvFixtureCard(
+                        competition = fixture.competition,
+                        homeTeam = fixture.homeTeam,
+                        awayTeam = fixture.awayTeam,
+                        homeCrestUrl = fixture.homeCrestUrl,
+                        awayCrestUrl = fixture.awayCrestUrl,
+                        status = fixture.status,
+                        channels = fixtureChannels[fixture.id] ?: emptyList(),
                         onPlayChannel = onPlayChannel,
-                        width = null,  // Full-width, not rail-constrained
-                        isSpotlight = false,  // All cards flat, no spotlight variant
-                        modifier = Modifier.enterReveal(revealDelay(index))
+                        width = null,
+                        isSpotlight = false,
+                        modifier = Modifier.enterReveal(revealDelay(index)),
                     )
                 }
             }

@@ -7,11 +7,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -19,6 +24,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,11 +45,18 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.denham.skyline.core.FixtureStatus
+import com.denham.skyline.data.db.ChannelEntity
 import com.denham.skyline.ui.components.ArtworkImage
+import com.denham.skyline.ui.components.LiveBadge
+import com.denham.skyline.ui.components.ProviderBadge
 import com.denham.skyline.ui.theme.SkyPalette
+import com.denham.skyline.ui.theme.SkyRadius
+import com.denham.skyline.ui.theme.SkySpacing
 
 /**
  * D-pad focus treatment for every interactive TV element: white outline +
@@ -231,6 +246,196 @@ fun TvNavTab(label: String, active: Boolean, onClick: () -> Unit) {
                     if (active) Modifier.background(SkyPalette.navUnderline)
                     else Modifier.background(Color.Transparent)
                 )
+        )
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Football fixtures — TV sibling of ui/components/Components.kt's FixtureCard
+// ---------------------------------------------------------------------------
+
+/**
+ * TV counterpart to the phone `FixtureCard`, not a modification of it — same
+ * sibling relationship as `TvLandscapeCard`/`TvPosterCard` to their phone
+ * equivalents. D-pad focusable via [tvClickable]; unlike phone (whole card
+ * clickable only when exactly one channel matches, chips only when 2+),
+ * every channel chip here is individually focusable regardless of count,
+ * since a D-pad has no touch fallback to disambiguate an ambiguous tap.
+ */
+@Composable
+fun TvFixtureCard(
+    competition: String,
+    homeTeam: String,
+    awayTeam: String,
+    homeCrestUrl: String?,
+    awayCrestUrl: String?,
+    status: FixtureStatus,
+    channels: List<ChannelEntity>,
+    onPlayChannel: (ChannelEntity) -> Unit,
+    modifier: Modifier = Modifier,
+    width: Dp? = 240.dp,
+    isSpotlight: Boolean = false,
+) {
+    val singleMatch = channels.singleOrNull()
+    val sizedModifier = if (width != null) modifier.width(width) else modifier.fillMaxWidth()
+    val shape = RoundedCornerShape(if (isSpotlight) SkyRadius.hero else SkyRadius.card)
+    val cardModifier = if (singleMatch != null) {
+        sizedModifier.tvClickable(shape) { onPlayChannel(singleMatch) }
+    } else {
+        sizedModifier.clip(shape)
+    }
+    val backgroundModifier = if (isSpotlight) {
+        Modifier.background(
+            Brush.linearGradient(
+                listOf(SkyPalette.SurfaceElevated, SkyPalette.Indigo.copy(alpha = 0.55f))
+            )
+        )
+    } else {
+        Modifier.background(SkyPalette.Surface)
+    }
+
+    Column(cardModifier.then(backgroundModifier).padding(SkySpacing.m)) {
+        ProviderBadge(competition)
+        Spacer(Modifier.height(SkySpacing.s))
+
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            ArtworkImage(
+                url = homeCrestUrl,
+                contentDescription = homeTeam,
+                fallbackIcon = Icons.Default.LiveTv,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(28.dp).clip(RoundedCornerShape(4.dp)),
+            )
+            Text(
+                homeTeam,
+                style = MaterialTheme.typography.titleSmall,
+                color = SkyPalette.TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f).padding(horizontal = SkySpacing.xs),
+            )
+            Text("v", style = MaterialTheme.typography.bodySmall, color = SkyPalette.TextMuted)
+            Text(
+                awayTeam,
+                style = MaterialTheme.typography.titleSmall,
+                color = SkyPalette.TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.End,
+                modifier = Modifier.weight(1f).padding(horizontal = SkySpacing.xs),
+            )
+            ArtworkImage(
+                url = awayCrestUrl,
+                contentDescription = awayTeam,
+                fallbackIcon = Icons.Default.LiveTv,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(28.dp).clip(RoundedCornerShape(4.dp)),
+            )
+        }
+
+        Spacer(Modifier.height(SkySpacing.s))
+
+        when (status) {
+            is FixtureStatus.Scheduled -> {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(SkySpacing.xs),
+                ) {
+                    Icon(
+                        Icons.Default.Schedule, null,
+                        tint = SkyPalette.TextMuted,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text(
+                        status.kickoffLocal,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = SkyPalette.TextSecondary,
+                    )
+                }
+            }
+            is FixtureStatus.Live -> {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(SkySpacing.xs),
+                ) {
+                    LiveBadge()
+                    Text(
+                        "${status.homeScore}–${status.awayScore}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = SkyPalette.TextPrimary,
+                    )
+                    Text(
+                        status.minute,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = SkyPalette.TextSecondary,
+                    )
+                }
+            }
+            is FixtureStatus.Finished -> {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(SkySpacing.xs),
+                ) {
+                    Text("FT", style = MaterialTheme.typography.labelMedium, color = SkyPalette.TextMuted)
+                    Text(
+                        "${status.homeScore}–${status.awayScore}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = SkyPalette.TextPrimary,
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(SkySpacing.s))
+
+        if (channels.isEmpty()) {
+            Text(
+                "Not on your channels",
+                style = MaterialTheme.typography.bodySmall,
+                color = SkyPalette.TextMuted,
+            )
+        } else {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(SkySpacing.xs),
+                verticalArrangement = Arrangement.spacedBy(SkySpacing.xs),
+            ) {
+                channels.forEach { channel ->
+                    TvFixtureChannelChip(channel = channel, onClick = { onPlayChannel(channel) })
+                }
+            }
+        }
+    }
+}
+
+/** D-pad-focusable channel chip, one per matched channel — every chip is
+ *  independently focusable regardless of how many channels a fixture has,
+ *  unlike phone's touch-only single/multi-channel tap split. */
+@Composable
+private fun TvFixtureChannelChip(
+    channel: ChannelEntity,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(SkyRadius.chip)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(SkySpacing.xs),
+        modifier = modifier
+            .tvClickable(shape, onClick)
+            .border(1.dp, SkyPalette.Accent, shape)
+            .padding(horizontal = SkySpacing.s, vertical = SkySpacing.xs),
+    ) {
+        Icon(
+            Icons.Default.PlayArrow, null,
+            tint = SkyPalette.Accent,
+            modifier = Modifier.size(12.dp),
+        )
+        Text(
+            channel.name,
+            style = MaterialTheme.typography.labelSmall,
+            color = SkyPalette.Accent,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
