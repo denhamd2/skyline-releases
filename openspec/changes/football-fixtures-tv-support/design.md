@@ -1,9 +1,12 @@
 ## Context
 
 Football fixtures ship as three pieces of UI, all phone-only:
-1. A Home-screen "Football" section (Man Utd spotlight + a horizontal rail
-   of the upcoming Premier League round), gated on `selectedMember ==
-   "David"`.
+1. A Home-screen "Football" section (Man Utd spotlight + a vertically-
+   stacked list of the upcoming Premier League round), gated on
+   `selectedMember == "David"`. The round list was itself a horizontal
+   `Rail` carousel until PR #9 (`claude/fixture-spacing-carousel-x0s6qn`)
+   converted it to a vertical list for the same content-density reason
+   this change applies to TV -- see "Decisions" below.
 2. A "View all" full-screen vertical list (`FixturesScreen.kt`), reached
    from the Home rail.
 3. `FixtureCard`/`FixtureChannelChip` (`ui/components/Components.kt`), the
@@ -60,6 +63,20 @@ open design question; a grid would also complicate D-pad focus traversal
 (up/down AND left/right within the list) for no stated benefit over a
 single-column vertical scroll, which every other full-list surface on TV
 already avoids.
+
+**TV Home's round section is also a vertical list, not a horizontal rail --
+matching phone Home, not TV's other rails.**
+Every other TV Home rail (top picks, favourites, genre rails) is a
+horizontal `LazyRow`, and this change's own earlier draft assumed the
+Football round section should follow that convention. Revised once PR #9
+(`claude/fixture-spacing-carousel-x0s6qn`) was found already applying the
+opposite conclusion to phone: a fixture card carries far more information
+per card (competition badge, two crests, two names, a status row, a row of
+channel chips) than a channel-logo rail card, so a horizontal carousel
+undersells it the same way it would on TV -- narrower cards, more
+truncation, less room for the channel-chip row before wrapping. Consistency
+with phone (and with this feature's own dedicated vertical "view all"
+list) outweighs consistency with TV's other, lower-density rails here.
 
 **Navigate via local `Boolean` state in `TvRoot`, not a new route.**
 TV has no `NavHost`; `TvMainActivity.kt`'s `TvRoot` already handles a

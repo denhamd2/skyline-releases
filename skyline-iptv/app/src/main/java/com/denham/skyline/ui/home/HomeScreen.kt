@@ -1,6 +1,7 @@
 package com.denham.skyline.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -794,7 +796,7 @@ fun HomeScreen(
         }
 
         // David-only "Football" section: Man Utd next-fixture spotlight +
-        // upcoming-Premier-League-round rail, directly under his pinned
+        // upcoming-Premier-League-round list, directly under his pinned
         // channels (which still outrank it -- an explicit pin beats
         // anything automatic) and ahead of YouTube/category rails, for the
         // same "time-decaying, happening today" reasoning that puts Live
@@ -820,8 +822,22 @@ fun HomeScreen(
                                     .height(120.dp)
                                     .clip(RoundedCornerShape(SkyRadius.card)),
                             )
-                            Spacer(Modifier.height(SkySpacing.s))
-                            ShimmerRail()
+                            Spacer(Modifier.height(SkySpacing.l))
+                            Column(
+                                modifier = Modifier
+                                    .padding(horizontal = SkySpacing.gutter)
+                                    .fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(SkySpacing.m),
+                            ) {
+                                repeat(3) {
+                                    ShimmerBox(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(120.dp)
+                                            .clip(RoundedCornerShape(SkyRadius.card)),
+                                    )
+                                }
+                            }
                         }
                         is FootballSectionState.Loaded -> {
                             football.manUtdNext?.let { fixture ->
@@ -851,22 +867,51 @@ fun HomeScreen(
                                 )
                             }
                             if (football.roundFixtures.isNotEmpty()) {
-                                SectionHeader("Football today", onViewAll = onViewAllFixtures)
-                                Rail(
-                                    "",
-                                    football.roundFixtures,
-                                    key = { it.id },
-                                ) { fixture ->
-                                    FixtureCard(
-                                        competition = fixture.competition,
-                                        homeTeam = fixture.homeTeam,
-                                        awayTeam = fixture.awayTeam,
-                                        homeCrestUrl = fixture.homeCrestUrl,
-                                        awayCrestUrl = fixture.awayCrestUrl,
-                                        status = fixture.status,
-                                        channels = fixtureChannels[fixture.id] ?: emptyList(),
-                                        onPlayChannel = onPlayChannel,
+                                Spacer(Modifier.height(SkySpacing.l))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(
+                                        horizontal = SkySpacing.gutter,
+                                        vertical = SkySpacing.s,
+                                    ),
+                                ) {
+                                    Text(
+                                        "This round",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = SkyPalette.TextSecondary,
+                                        modifier = Modifier.weight(1f),
                                     )
+                                    Text(
+                                        "View all",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = SkyPalette.Accent,
+                                        modifier = Modifier
+                                            .clickable(onClick = onViewAllFixtures)
+                                            .padding(4.dp),
+                                    )
+                                }
+                                Column(
+                                    modifier = Modifier
+                                        .padding(horizontal = SkySpacing.gutter)
+                                        .fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(SkySpacing.m),
+                                ) {
+                                    football.roundFixtures.forEach { fixture ->
+                                        key(fixture.id) {
+                                            FixtureCard(
+                                                competition = fixture.competition,
+                                                homeTeam = fixture.homeTeam,
+                                                awayTeam = fixture.awayTeam,
+                                                homeCrestUrl = fixture.homeCrestUrl,
+                                                awayCrestUrl = fixture.awayCrestUrl,
+                                                status = fixture.status,
+                                                channels = fixtureChannels[fixture.id] ?: emptyList(),
+                                                onPlayChannel = onPlayChannel,
+                                                width = null,
+                                                modifier = Modifier.fillMaxWidth(),
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }

@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -337,22 +338,32 @@ fun TvHomeScreen(
                                         )
                                     }
                                 }
-                                LazyRow(
-                                    contentPadding = PaddingValues(horizontal = 48.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                // Vertical, matching phone Home's fixtures
+                                // list -- a round's fixture cards are
+                                // information-dense (crests, status, channel
+                                // chips), the same reasoning that moved
+                                // phone's Home rail from a horizontal
+                                // carousel to a vertical list applies here.
+                                Column(
+                                    modifier = Modifier
+                                        .padding(horizontal = 48.dp)
+                                        .fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(SkySpacing.m),
                                 ) {
-                                    items(football.roundFixtures.size, key = { football.roundFixtures[it].id }) { i ->
-                                        val fixture = football.roundFixtures[i]
-                                        TvFixtureCard(
-                                            competition = fixture.competition,
-                                            homeTeam = fixture.homeTeam,
-                                            awayTeam = fixture.awayTeam,
-                                            homeCrestUrl = fixture.homeCrestUrl,
-                                            awayCrestUrl = fixture.awayCrestUrl,
-                                            status = fixture.status,
-                                            channels = fixtureChannels[fixture.id] ?: emptyList(),
-                                            onPlayChannel = onPlayChannel,
-                                        )
+                                    football.roundFixtures.forEach { fixture ->
+                                        key(fixture.id) {
+                                            TvFixtureCard(
+                                                competition = fixture.competition,
+                                                homeTeam = fixture.homeTeam,
+                                                awayTeam = fixture.awayTeam,
+                                                homeCrestUrl = fixture.homeCrestUrl,
+                                                awayCrestUrl = fixture.awayCrestUrl,
+                                                status = fixture.status,
+                                                channels = fixtureChannels[fixture.id] ?: emptyList(),
+                                                onPlayChannel = onPlayChannel,
+                                                width = null,
+                                            )
+                                        }
                                     }
                                 }
                             }

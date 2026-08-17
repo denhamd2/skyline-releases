@@ -10,7 +10,7 @@ phone reads.
 
 - **WHEN** the selected family member is "David"
 - **THEN** the TV Football section (Man Utd spotlight + upcoming-round
-  rail) is eligible to render, subject to the same data/key availability
+  list) is eligible to render, subject to the same data/key availability
   as phone
 
 #### Scenario: Any other member or no member selected on TV
@@ -38,25 +38,29 @@ fixture card.
 - **WHEN** football-data.org returns no scheduled fixture for Manchester
   United
 - **THEN** the spotlight sub-block is omitted, independent of whether the
-  round rail renders
+  round list renders
 
-### Requirement: TV upcoming Premier League round rail
+### Requirement: TV upcoming Premier League round list
 
 When David is selected and a key is configured, TV Home SHALL show a
-horizontal rail of the upcoming Premier League round's fixtures, using the
-same `roundFixtures` data phone's rail uses.
+vertically-stacked list of the upcoming Premier League round's fixtures
+(full-width cards, not a horizontal rail), using the same `roundFixtures`
+data phone's Home list uses -- matching phone Home's own carousel-to-list
+change (fixture cards are information-dense; a horizontal rail undersells
+them the way it doesn't for a simple channel-logo rail).
 
 #### Scenario: Round fixtures available on TV
 
 - **WHEN** `roundFixtures` is non-empty
-- **THEN** each fixture renders as a D-pad-focusable TV fixture card
-  showing competition, teams, status, and matched EPG channels, and a
-  "View all" affordance is shown that opens the TV fixtures list
+- **THEN** each fixture renders as a D-pad-focusable TV fixture card,
+  stacked vertically, showing competition, teams, status, and matched EPG
+  channels, and a "View all" affordance is shown that opens the TV
+  fixtures list
 
 #### Scenario: No round fixtures on TV
 
 - **WHEN** `roundFixtures` is empty
-- **THEN** the rail does not render (no empty-state card)
+- **THEN** the list does not render (no empty-state card)
 
 ### Requirement: TV fixtures full list is vertical
 
@@ -67,7 +71,7 @@ grid.
 
 #### Scenario: Opening the TV fixtures list
 
-- **WHEN** the user selects "View all" from the TV Football rail
+- **WHEN** the user selects "View all" from the TV Football round list
 - **THEN** a full-screen vertical list of the same `roundFixtures` opens,
   one fixture card per row, each independently D-pad-focusable, with the
   same staggered fade/slide-up entry motion the phone list uses

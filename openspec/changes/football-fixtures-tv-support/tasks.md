@@ -29,11 +29,13 @@
       (same StateFlows `HomeViewModel` already exposes) alongside
       `TvHomeScreen`'s existing `collectAsState()` calls.
 - [x] 2.3 Insert a "Football" section item, gated `selectedMember ==
-      "David"`, mirroring `HomeScreen.kt:810-877`'s structure: "Man Utd
-      next" label + spotlight `TvFixtureCard(isSpotlight = true)`, then
-      `TvRailHeader` + horizontal `LazyRow` of `roundFixtures` using
-      `TvFixtureCard`, with a "View all" control that calls
-      `onViewAllFixtures`.
+      "David"`, mirroring `HomeScreen.kt`'s structure: "Man Utd next" label
+      + spotlight `TvFixtureCard(isSpotlight = true)`, then a "This round" /
+      "View all" header row + a **vertically-stacked** `Column` of
+      `roundFixtures` using `TvFixtureCard(width = null)` -- matching
+      phone Home's list shape (reconciled with PR #9's carousel-to-list
+      change, adopted into this branch; see design.md), not TV's other
+      horizontal rails.
 - [x] 2.4 Loading state: reuse the existing `ShimmerBox`/`ShimmerRail`
       pattern already used elsewhere on TV/phone for this section's
       `FootballSectionState.Loading`.
