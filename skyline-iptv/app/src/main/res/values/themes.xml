@@ -3,23 +3,32 @@
     <!-- Dark launch theme so the window never flashes white before Compose
          takes over. The real theming is the Material 3 ColorScheme in code.
 
-         colorPrimary/colorPrimaryDark/colorAccent/isLightTheme are the
-         exception: they exist only for MediaRouter's Cast chooser dialog,
-         which is a View system dialog the framework builds itself from the
-         Activity's own theme, not from the Theme.AppCompat wrapper
-         CastButton.kt applies locally to the button widget, which never
-         reaches it. These are AppCompat's own custom attrs (unprefixed,
-         from androidx.appcompat.R.attr, confirmed against
-         MediaRouterThemeHelper's source), settable on any theme regardless
-         of its parent since the appcompat dependency declares them into the
-         app's merged attribute table; they are not the platform
-         android:colorPrimary etc. Without them,
-         MediaRouterThemeHelper.getControllerColor() resolves an undefined
-         (fully transparent) controller color and
-         ColorUtils.calculateContrast() throws "background can not be
-         translucent: #0", crashing on every tap of the cast icon. Values
-         match SkyPalette.Accent/Canvas in Theme.kt. -->
-    <style name="Theme.Skyline" parent="android:Theme.Material.NoActionBar">
+         The parent MUST stay an AppCompat descendant. MediaRouter's Cast
+         chooser is a MediaRouteChooserDialog, which extends AppCompatDialog,
+         and it is built from the *Activity's* theme -- the Theme.AppCompat
+         wrapper CastButton.kt applies to the button widget never reaches it.
+         MediaRouterThemeHelper layers R.style.Theme_MediaRouter on top, but
+         that is parented to ThemeOverlay.AppCompat.Dark, and a ThemeOverlay
+         by design defines only a few colour attrs -- not windowActionBar. So
+         with a platform (android:Theme.Material) parent, nothing in the
+         chain defines it and AppCompatDelegateImpl.createSubDecor() throws
+         "You need to use a Theme.AppCompat theme (or descendant) with this
+         activity." on the main thread, crashing on every tap of the cast
+         icon.
+
+         This was previously "fixed" by hand-copying AppCompat's colorPrimary/
+         colorPrimaryDark/colorAccent/isLightTheme onto a Material parent.
+         That got past an earlier crash in the same dialog -- without
+         colorPrimary, MediaRouterThemeHelper.getControllerColor() resolves a
+         fully transparent colour and ColorUtils.calculateContrast() throws
+         "background can not be translucent: #0" -- and then landed on the
+         next missing attr. Impersonating AppCompat attr by attr does not
+         work; the theme has to be one.
+
+         The four colour items below stay, but now as deliberate overrides of
+         AppCompat's defaults: they keep the chooser dialog dark and tinted
+         Sky-blue. Values match SkyPalette.Accent/Canvas in Theme.kt. -->
+    <style name="Theme.Skyline" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowBackground">#0A0E1A</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>

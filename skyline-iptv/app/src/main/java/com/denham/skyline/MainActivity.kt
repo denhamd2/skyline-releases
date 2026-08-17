@@ -77,6 +77,13 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
 
         enableEdgeToEdge()
 
+        // Build the CastPlayer now, on the main thread, so its session listener
+        // exists before the user can reach a cast button. Connecting from the
+        // Live or Guide screen used to leave no CastPlayer to receive the
+        // session, and playback silently stayed on the phone. Not done on TV —
+        // TvMainActivity has no cast UI.
+        runCatching { container.playerManager.initCasting() }
+
         setContent {
             var isInPip by remember { mutableStateOf(isInPictureInPictureMode) }
 
