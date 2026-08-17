@@ -5,11 +5,11 @@
 
          The parent MUST stay an AppCompat descendant. MediaRouter's Cast
          chooser is a MediaRouteChooserDialog, which extends AppCompatDialog,
-         and it is built from the *Activity's* theme -- the Theme.AppCompat
+         and it is built from the *Activity's* theme — the Theme.AppCompat
          wrapper CastButton.kt applies to the button widget never reaches it.
          MediaRouterThemeHelper layers R.style.Theme_MediaRouter on top, but
          that is parented to ThemeOverlay.AppCompat.Dark, and a ThemeOverlay
-         by design defines only a few colour attrs -- not windowActionBar. So
+         by design defines only a few colour attrs — not windowActionBar. So
          with a platform (android:Theme.Material) parent, nothing in the
          chain defines it and AppCompatDelegateImpl.createSubDecor() throws
          "You need to use a Theme.AppCompat theme (or descendant) with this
@@ -18,10 +18,10 @@
 
          This was previously "fixed" by hand-copying AppCompat's colorPrimary/
          colorPrimaryDark/colorAccent/isLightTheme onto a Material parent.
-         That got past an earlier crash in the same dialog -- without
+         That got past an earlier crash in the same dialog — without
          colorPrimary, MediaRouterThemeHelper.getControllerColor() resolves a
          fully transparent colour and ColorUtils.calculateContrast() throws
-         "background can not be translucent: #0" -- and then landed on the
+         "background can not be translucent: #0" — and then landed on the
          next missing attr. Impersonating AppCompat attr by attr does not
          work; the theme has to be one.
 
