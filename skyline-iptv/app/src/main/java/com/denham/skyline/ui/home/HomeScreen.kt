@@ -154,8 +154,10 @@ class HomeViewModel(private val container: AppContainer) : ViewModel() {
     val continueWatching = container.historyStore.lastPlayed
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    /** Family member selector: which person's preferences to show. */
-    private val _selectedFamilyMember = MutableStateFlow<String?>(null)
+    /** Family member selector: which person's preferences to show.
+     *  Defaults to David so his tab (including the Football section) is
+     *  selected on load rather than requiring a manual pick every time. */
+    private val _selectedFamilyMember = MutableStateFlow<String?>("David")
     val selectedFamilyMember: StateFlow<String?> = _selectedFamilyMember
 
     /** All available categories from provider. */
