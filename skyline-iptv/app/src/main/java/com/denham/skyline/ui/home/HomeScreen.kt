@@ -851,11 +851,11 @@ fun HomeScreen(
                                 )
                             }
                             if (football.roundFixtures.isNotEmpty()) {
+                                SectionHeader("Football today", onViewAll = onViewAllFixtures)
                                 Rail(
                                     "",
                                     football.roundFixtures,
                                     key = { it.id },
-                                    onViewAll = onViewAllFixtures
                                 ) { fixture ->
                                     FixtureCard(
                                         competition = fixture.competition,
