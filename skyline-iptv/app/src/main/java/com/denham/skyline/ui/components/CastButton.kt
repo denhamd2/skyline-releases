@@ -1,5 +1,6 @@
 package com.denham.skyline.ui.components
 
+import android.util.Log
 import android.view.ContextThemeWrapper
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -27,8 +28,13 @@ fun CastButton(modifier: Modifier = Modifier) {
         factory = { ctx ->
             val themed = ContextThemeWrapper(ctx, androidx.appcompat.R.style.Theme_AppCompat)
             MediaRouteButton(themed).apply {
+                // Non-fatal, but never silent: swallowing this left a button that
+                // rendered (setAlwaysVisible below) with no route selector, so the
+                // icon was simply inert with nothing to explain why.
                 runCatching {
                     CastButtonFactory.setUpMediaRouteButton(ctx.applicationContext, this)
+                }.onFailure {
+                    Log.w("CastButton", "setUpMediaRouteButton failed; cast icon is inert", it)
                 }
                 // Show the icon even before a Cast device is discovered.
                 setAlwaysVisible(true)

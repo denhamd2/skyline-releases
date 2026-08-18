@@ -73,6 +73,7 @@ import com.denham.skyline.data.db.ChannelEntity
 import com.denham.skyline.data.db.MovieEntity
 import com.denham.skyline.data.prefs.LastPlayed
 import com.denham.skyline.di.AppContainer
+import com.denham.skyline.player.PlayerUiError
 import com.denham.skyline.player.httpErrorCode
 import com.denham.skyline.ui.components.CastButton
 import com.denham.skyline.ui.components.ChannelCard
@@ -118,7 +119,6 @@ class PlayerViewModel(private val container: AppContainer) : ViewModel() {
      *  Chromecast session is connected. */
     val player: Player get() = manager.currentPlayer.value
     val currentPlayer: StateFlow<Player> = manager.currentPlayer
-    val castAvailable: Boolean get() = manager.castAvailable
 
     private val _state = MutableStateFlow(PlayerUiState())
     val state: StateFlow<PlayerUiState> = _state
@@ -152,6 +152,16 @@ class PlayerViewModel(private val container: AppContainer) : ViewModel() {
                 if (!_state.value.isLive && player.isPlaying) {
                     val duration = player.duration.takeIf { it != C.TIME_UNSET } ?: 0L
                     container.historyStore.updatePosition(player.currentPosition, duration)
+                }
+            }
+        }
+        // PlayerManager reports cast hand-off failures on its own error flow, and
+        // nothing was collecting it — so "this can't be cast" was written into a
+        // flow with no reader and the cast just died quietly.
+        viewModelScope.launch {
+            manager.error.collect { err ->
+                if (err is PlayerUiError.Message) {
+                    _state.value = _state.value.copy(error = err.text)
                 }
             }
         }
@@ -222,8 +232,15 @@ class PlayerViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     private fun startLive(channel: ChannelEntity) {
-        val url = container.urlBuilder().live(channel.streamId, currentContainer)
-        manager.playLive(channel.streamId, url, channel.name, null)
+        val urls = container.urlBuilder()
+        manager.playLive(
+            streamId = channel.streamId,
+            url = urls.live(channel.streamId, currentContainer),
+            title = channel.name,
+            subtitle = null,
+            // A Chromecast can only be given HLS, whatever the local container is.
+            castUrl = urls.live(channel.streamId, LiveContainer.HLS),
+        )
     }
 
     fun togglePlayPause() {
@@ -297,6 +314,19 @@ class PlayerViewModel(private val container: AppContainer) : ViewModel() {
 
         if (httpCode in setOf(401, 403, 405, 406)) {
             _state.value = s.copy(error = XtreamError.messageFor(httpCode!!))
+            return
+        }
+
+        // The listener is attached to the cast player too, so a receiver-side
+        // failure would otherwise drive the local backoff-then-swap-container
+        // ladder below. That ladder cannot help: the cast URL is always HLS and
+        // never changes, so it just burns four loads before showing a message
+        // about local playback.
+        if (manager.isCasting) {
+            _state.value = s.copy(
+                error = "The Chromecast couldn't play this channel. " +
+                    "Disconnect to watch it here instead.",
+            )
             return
         }
 

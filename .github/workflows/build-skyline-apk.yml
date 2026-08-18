@@ -54,11 +54,9 @@ jobs:
       - name: Rename APK
         run: cp app/build/outputs/apk/debug/app-debug.apk Skyline.apk
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: skyline-apk
-          path: skyline-iptv/Skyline.apk
+      # Build artifact upload removed: the APK is published to the GitHub Release
+      # (skyline-latest) which serves as the distribution channel. Storing artifacts
+      # here was redundant and consumed storage quota without adding value.
 
       # Keep a stable, phone-friendly download URL:
       # https://github.com/<repo>/releases/tag/skyline-latest
@@ -107,15 +105,9 @@ jobs:
             ./gradlew verifyRoborazziDebug --no-daemon
           fi
 
-      # On a failing verify, Roborazzi writes *_actual.png / *_compare.png
-      # beside the untouched golden, so this uploads regardless of outcome.
-      - name: Upload UI screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: skyline-screenshots
-          path: docs/skyline-screenshots/
-          if-no-files-found: ignore
+      # Screenshot artifact upload removed: screenshots are version-controlled in
+      # docs/skyline-screenshots/ and available directly in the repository. Storing
+      # them as transient workflow artifacts consumed storage without utility.
 
       # Commits updated goldens back to the branch, but only for an explicit
       # record_screenshots dispatch -- the one case where new PNGs are meant

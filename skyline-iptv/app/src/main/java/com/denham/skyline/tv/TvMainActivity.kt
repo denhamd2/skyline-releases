@@ -130,7 +130,9 @@ private inline fun <reified VM : androidx.lifecycle.ViewModel> tvViewModel(
 private fun TvRoot(container: AppContainer) {
     var tab by remember { mutableStateOf(TvTab.HOME) }
     var playing by remember { mutableStateOf(false) }
+    var showFixtures by remember { mutableStateOf(false) }
     val playerVm = tvViewModel { PlayerViewModel(it) }
+    val homeVm = tvViewModel { HomeViewModel(it) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -187,8 +189,10 @@ private fun TvRoot(container: AppContainer) {
             ) { current ->
                 when (current) {
                 TvTab.HOME -> {
-                    val vm = tvViewModel { HomeViewModel(it) }
-                    TvHomeScreen(vm, ::playChannel, ::playMovie, ::resume, ::playYoutube)
+                    TvHomeScreen(
+                        homeVm, ::playChannel, ::playMovie, ::resume, ::playYoutube,
+                        onViewAllFixtures = { showFixtures = true },
+                    )
                 }
                 TvTab.GUIDE -> {
                     val vm = tvViewModel { GuideViewModel(it) }
@@ -244,6 +248,21 @@ private fun TvRoot(container: AppContainer) {
             }
         }
 
+        if (!playing && showFixtures) {
+            val footballSection by homeVm.footballSection.collectAsState()
+            val fixtureChannels by homeVm.fixtureChannels.collectAsState()
+            val fixtures = when (val state = footballSection) {
+                is com.denham.skyline.ui.home.FootballSectionState.Loaded -> state.roundFixtures
+                else -> emptyList()
+            }
+            TvFixturesScreen(
+                fixtures = fixtures,
+                fixtureChannels = fixtureChannels,
+                onPlayChannel = { channel -> showFixtures = false; playChannel(channel) },
+                onBack = { showFixtures = false },
+            )
+        }
+
         if (playing) {
             TvPlayerOverlay(
                 viewModel = playerVm,
@@ -259,7 +278,10 @@ private fun TvRoot(container: AppContainer) {
         playerVm.stop()
         playing = false
     }
-    BackHandler(enabled = !playing && tab != TvTab.HOME) {
+    BackHandler(enabled = !playing && showFixtures) {
+        showFixtures = false
+    }
+    BackHandler(enabled = !playing && !showFixtures && tab != TvTab.HOME) {
         tab = TvTab.HOME
     }
 }

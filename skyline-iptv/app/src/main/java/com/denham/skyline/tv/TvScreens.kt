@@ -36,11 +36,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
@@ -56,13 +58,17 @@ import com.denham.skyline.ui.browse.MoviesViewModel
 import com.denham.skyline.ui.browse.SeriesViewModel
 import com.denham.skyline.ui.components.ArtworkImage
 import com.denham.skyline.ui.components.LiveBadge
+import com.denham.skyline.ui.components.ShimmerBox
 import com.denham.skyline.ui.components.SkylineWordmark
 import com.denham.skyline.ui.components.YouTubeCard
 import com.denham.skyline.ui.components.enterReveal
 import com.denham.skyline.ui.components.revealDelay
 import com.denham.skyline.ui.guide.GuideViewModel
+import com.denham.skyline.ui.home.FootballSectionState
 import com.denham.skyline.ui.home.HomeViewModel
 import com.denham.skyline.ui.theme.SkyPalette
+import com.denham.skyline.ui.theme.SkyRadius
+import com.denham.skyline.ui.theme.SkySpacing
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -90,6 +96,7 @@ fun TvHomeScreen(
     onPlayMovie: (MovieEntity) -> Unit,
     onResume: (com.denham.skyline.data.prefs.LastPlayed) -> Unit = {},
     onPlayYoutube: (videoId: String, title: String, thumbnailUrl: String?) -> Unit = { _, _, _ -> },
+    onViewAllFixtures: () -> Unit = {},
 ) {
     val movies by viewModel.recentMovies.collectAsState()
     val popular by viewModel.popularChannels.collectAsState()
@@ -102,6 +109,8 @@ fun TvHomeScreen(
     val categoryRails by viewModel.categoryRails.collectAsState()
     val youtubeVideos by viewModel.youtubeVideos.collectAsState()
     val selectedMember by viewModel.selectedFamilyMember.collectAsState()
+    val footballSection by viewModel.footballSection.collectAsState()
+    val fixtureChannels by viewModel.fixtureChannels.collectAsState()
     val hero = movies.firstOrNull()
 
     LazyColumn(
@@ -258,6 +267,108 @@ fun TvHomeScreen(
                             badgeLogoUrl = if ((art ?: resolved) != null) ch.icon else null,
                             onClick = { onPlayChannel(ch) },
                         )
+                    }
+                }
+            }
+        }
+
+        // David-only "Football" section: mirrors HomeScreen.kt's placement
+        // and gating exactly (selectedMember == "David"), reusing the same
+        // footballSection/fixtureChannels state -- ahead of YouTube for the
+        // same "time-decaying, happening today" reasoning phone uses.
+        val showFootball = selectedMember == "David" && when (val football = footballSection) {
+            FootballSectionState.Hidden -> false
+            FootballSectionState.Loading -> true
+            is FootballSectionState.Loaded ->
+                football.manUtdNext != null || football.roundFixtures.isNotEmpty()
+        }
+        if (showFootball) {
+            item {
+                Column(Modifier.enterReveal(revealDelay(categoryRails.size))) {
+                    TvRailHeader("Football")
+                    when (val football = footballSection) {
+                        is FootballSectionState.Loading -> {
+                            ShimmerBox(
+                                Modifier
+                                    .padding(horizontal = 48.dp)
+                                    .width(320.dp)
+                                    .height(160.dp)
+                                    .clip(RoundedCornerShape(SkyRadius.card)),
+                            )
+                        }
+                        is FootballSectionState.Loaded -> {
+                            football.manUtdNext?.let { fixture ->
+                                Text(
+                                    "Man Utd next",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = SkyPalette.TextSecondary,
+                                    modifier = Modifier.padding(horizontal = 48.dp, vertical = SkySpacing.s),
+                                )
+                                Row(Modifier.padding(horizontal = 48.dp)) {
+                                    TvFixtureCard(
+                                        competition = fixture.competition,
+                                        homeTeam = fixture.homeTeam,
+                                        awayTeam = fixture.awayTeam,
+                                        homeCrestUrl = fixture.homeCrestUrl,
+                                        awayCrestUrl = fixture.awayCrestUrl,
+                                        status = fixture.status,
+                                        channels = fixtureChannels[fixture.id] ?: emptyList(),
+                                        onPlayChannel = onPlayChannel,
+                                        width = 320.dp,
+                                        isSpotlight = true,
+                                    )
+                                }
+                            }
+                            if (football.roundFixtures.isNotEmpty()) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 48.dp, vertical = SkySpacing.s),
+                                ) {
+                                    Text(
+                                        "This round",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = SkyPalette.TextSecondary,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Box(Modifier.tvClickable(onClick = onViewAllFixtures).padding(6.dp)) {
+                                        Text(
+                                            "View all",
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = SkyPalette.Accent,
+                                        )
+                                    }
+                                }
+                                // Vertical, matching phone Home's fixtures
+                                // list -- a round's fixture cards are
+                                // information-dense (crests, status, channel
+                                // chips), the same reasoning that moved
+                                // phone's Home rail from a horizontal
+                                // carousel to a vertical list applies here.
+                                Column(
+                                    modifier = Modifier
+                                        .padding(horizontal = 48.dp)
+                                        .fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(SkySpacing.m),
+                                ) {
+                                    football.roundFixtures.forEach { fixture ->
+                                        key(fixture.id) {
+                                            TvFixtureCard(
+                                                competition = fixture.competition,
+                                                homeTeam = fixture.homeTeam,
+                                                awayTeam = fixture.awayTeam,
+                                                homeCrestUrl = fixture.homeCrestUrl,
+                                                awayCrestUrl = fixture.awayCrestUrl,
+                                                status = fixture.status,
+                                                channels = fixtureChannels[fixture.id] ?: emptyList(),
+                                                onPlayChannel = onPlayChannel,
+                                                width = null,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        FootballSectionState.Hidden -> Unit
                     }
                 }
             }
